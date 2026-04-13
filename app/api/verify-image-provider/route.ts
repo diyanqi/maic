@@ -16,32 +16,23 @@
 
 import { NextRequest } from 'next/server';
 import { testImageConnectivity } from '@/lib/media/image-providers';
-import { resolveImageApiKey, resolveImageBaseUrl } from '@/lib/server/provider-config';
+import {
+  getDefaultImageProviderId,
+  resolveImageApiKey,
+  resolveImageBaseUrl,
+} from '@/lib/server/provider-config';
 import type { ImageProviderId } from '@/lib/media/types';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
-import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 
 const log = createLogger('VerifyImageProvider');
 
 export async function POST(request: NextRequest) {
   try {
-    const providerId = (request.headers.get('x-image-provider') || 'seedream') as ImageProviderId;
-    const model = request.headers.get('x-image-model') || undefined;
-    const clientApiKey = request.headers.get('x-api-key') || undefined;
-    const clientBaseUrl = request.headers.get('x-base-url') || undefined;
-
-    if (clientBaseUrl && process.env.NODE_ENV === 'production') {
-      const ssrfError = await validateUrlForSSRF(clientBaseUrl);
-      if (ssrfError) {
-        return apiError('INVALID_URL', 403, ssrfError);
-      }
-    }
-
-    const apiKey = clientBaseUrl
-      ? clientApiKey || ''
-      : resolveImageApiKey(providerId, clientApiKey);
-    const baseUrl = clientBaseUrl ? clientBaseUrl : resolveImageBaseUrl(providerId, clientBaseUrl);
+    const providerId =
+      (getDefaultImageProviderId() as ImageProviderId | undefined) || ('seedream' as ImageProviderId);
+    const apiKey = resolveImageApiKey(providerId);
+    const baseUrl = resolveImageBaseUrl(providerId);
 
     if (!apiKey) {
       return apiError('MISSING_API_KEY', 400, 'No API key configured');
@@ -51,7 +42,6 @@ export async function POST(request: NextRequest) {
       providerId,
       apiKey,
       baseUrl,
-      model,
     });
 
     if (!result.success) {

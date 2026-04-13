@@ -14,10 +14,10 @@ export function getCurrentModelConfig() {
     providerId,
     modelId,
     modelString,
-    apiKey: providerConfig?.apiKey || '',
-    baseUrl: providerConfig?.baseUrl || '',
+    apiKey: '',
+    baseUrl: '',
     providerType: providerConfig?.type,
-    requiresApiKey: providerConfig?.requiresApiKey,
-    isServerConfigured: providerConfig?.isServerConfigured,
+    requiresApiKey: false,
+    isServerConfigured: true,
   };
 }

@@ -1,77 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 
-/** Convert string to Uint8Array */
-function encode(str: string): Uint8Array {
-  return new TextEncoder().encode(str);
+const CDN_ORIGIN = 'https://maic.amzcd.top';
+const CDN_HOST = 'maic.amzcd.top';
+
+function shouldRedirectToCdn(pathname: string): boolean {
+  if (pathname.startsWith('/_next/static/')) return true;
+  if (pathname.startsWith('/logos/')) return true;
+  if (pathname.startsWith('/avatars/')) return true;
+  return /\.(?:js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot|map)$/i.test(pathname);
 }
 
-/** Convert ArrayBuffer to hex string */
-function bufToHex(buf: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
+export default auth((request) => {
+  const { pathname, search, hostname } = request.nextUrl;
 
-/** Verify an HMAC-signed token using Web Crypto API (Edge-compatible) */
-async function verifyToken(token: string, accessCode: string): Promise<boolean> {
-  const dotIndex = token.indexOf('.');
-  if (dotIndex === -1) return false;
-
-  const timestamp = token.substring(0, dotIndex);
-  const signature = token.substring(dotIndex + 1);
-
-  const keyData = encode(accessCode);
-  const key = await crypto.subtle.importKey(
-    'raw',
-    keyData.buffer as ArrayBuffer,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-
-  const data = encode(timestamp);
-  const expected = bufToHex(await crypto.subtle.sign('HMAC', key, data.buffer as ArrayBuffer));
-
-  // Constant-length comparison (not truly constant-time in JS, but sufficient here)
-  if (signature.length !== expected.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < signature.length; i++) {
-    mismatch |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
+  if (
+    process.env.NODE_ENV === 'production' &&
+    hostname !== CDN_HOST &&
+    shouldRedirectToCdn(pathname)
+  ) {
+    return NextResponse.redirect(`${CDN_ORIGIN}${pathname}${search}`, 307);
   }
-  return mismatch === 0;
-}
 
-export async function middleware(request: NextRequest) {
-  const accessCode = process.env.ACCESS_CODE;
-  if (!accessCode) {
+  if (pathname === '/login' || pathname === '/api/health' || pathname.startsWith('/api/auth/')) {
     return NextResponse.next();
   }
 
-  const { pathname } = request.nextUrl;
+  if (!request.auth) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { success: false, errorCode: 'UNAUTHORIZED', error: 'OAuth login required' },
+        { status: 401 },
+      );
+    }
 
-  // Whitelist: access-code endpoints, health check
-  if (pathname.startsWith('/api/access-code/') || pathname === '/api/health') {
-    return NextResponse.next();
+    const callbackUrl = encodeURIComponent(`${pathname}${search}`);
+    return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, request.url));
   }
 
-  // Check cookie — validate HMAC signature, not just existence
-  const cookie = request.cookies.get('openmaic_access');
-  if (cookie?.value && (await verifyToken(cookie.value, accessCode))) {
-    return NextResponse.next();
-  }
-
-  // API requests without valid cookie → 401
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.json(
-      { success: false, errorCode: 'INVALID_REQUEST', error: 'Access code required' },
-      { status: 401 },
-    );
-  }
-
-  // Page requests → let through, frontend shows modal
   return NextResponse.next();
-}
+});
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|logos/).*)'],
+  matcher: ['/((?!_next/image|favicon.ico).*)'],
 };

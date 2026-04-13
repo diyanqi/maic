@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { createLogger } from '@/lib/logger';
+import { PROVIDERS } from '@/lib/ai/providers';
 
 const log = createLogger('ServerProviderConfig');
 
@@ -50,16 +51,6 @@ const LLM_ENV_MAP: Record<string, string> = {
   DOUBAO: 'doubao',
   GROK: 'grok',
   OLLAMA: 'ollama',
-};
-
-const TTS_ENV_MAP: Record<string, string> = {
-  TTS_OPENAI: 'openai-tts',
-  TTS_AZURE: 'azure-tts',
-  TTS_GLM: 'glm-tts',
-  TTS_QWEN: 'qwen-tts',
-  TTS_DOUBAO: 'doubao-tts',
-  TTS_ELEVENLABS: 'elevenlabs-tts',
-  TTS_MINIMAX: 'minimax-tts',
 };
 
 const ASR_ENV_MAP: Record<string, string> = {
@@ -193,6 +184,42 @@ function loadEnvSection(
 }
 
 // ---------------------------------------------------------------------------
+// API-key rotation helpers
+// ---------------------------------------------------------------------------
+
+const keyRotationCursor = new Map<string, number>();
+
+function splitApiKeys(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+}
+
+function pickRotatingApiKey(scope: string, raw: string | undefined): string {
+  const keys = splitApiKeys(raw);
+  if (keys.length === 0) return '';
+
+  const cursor = keyRotationCursor.get(scope) ?? 0;
+  const selected = keys[cursor % keys.length];
+  keyRotationCursor.set(scope, (cursor + 1) % keys.length);
+  return selected;
+}
+
+function pickDefaultProvider(
+  section: Record<string, ServerProviderEntry>,
+  preferredEnvName?: string,
+): string | undefined {
+  const ids = Object.keys(section);
+  if (ids.length === 0) return undefined;
+
+  const preferred = preferredEnvName ? process.env[preferredEnvName] : undefined;
+  if (preferred && section[preferred]) return preferred;
+  return ids[0];
+}
+
+// ---------------------------------------------------------------------------
 // Module-level cache (process singleton)
 // ---------------------------------------------------------------------------
 
@@ -203,7 +230,8 @@ function buildConfig(yamlData: YamlData): ServerConfig {
     providers: loadEnvSection(LLM_ENV_MAP, yamlData.providers, {
       keylessProviders: new Set(['ollama']),
     }),
-    tts: loadEnvSection(TTS_ENV_MAP, yamlData.tts),
+    // TTS now defaults to edge-tts-universal and does not require server API keys.
+    tts: {},
     asr: loadEnvSection(ASR_ENV_MAP, yamlData.asr),
     pdf: loadEnvSection(PDF_ENV_MAP, yamlData.pdf, { requiresBaseUrl: true }),
     image: loadEnvSection(IMAGE_ENV_MAP, yamlData.image),
@@ -255,15 +283,25 @@ export function getServerProviders(): Record<string, { models?: string[]; baseUr
   return result;
 }
 
-/** Resolve API key: client key > server key > empty string */
-export function resolveApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey) return clientKey;
-  return getConfig().providers[providerId]?.apiKey || '';
+export function getDefaultLLMProviderId(): string | undefined {
+  return pickDefaultProvider(getConfig().providers, 'DEFAULT_LLM_PROVIDER');
 }
 
-/** Resolve base URL: client > server > undefined */
-export function resolveBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
-  if (clientBaseUrl) return clientBaseUrl;
+export function getDefaultLLMModelId(providerId: string): string | undefined {
+  const configured = getConfig().providers[providerId];
+  if (configured?.models?.length) return configured.models[0];
+
+  const builtIn = PROVIDERS[providerId as keyof typeof PROVIDERS];
+  return builtIn?.models?.[0]?.id;
+}
+
+/** Resolve API key from server config only, with comma-separated round-robin support. */
+export function resolveApiKey(providerId: string): string {
+  return pickRotatingApiKey(`llm:${providerId}`, getConfig().providers[providerId]?.apiKey);
+}
+
+/** Resolve base URL from server config only. */
+export function resolveBaseUrl(providerId: string): string | undefined {
   return getConfig().providers[providerId]?.baseUrl;
 }
 
@@ -286,16 +324,6 @@ export function getServerTTSProviders(): Record<string, { baseUrl?: string }> {
   return result;
 }
 
-export function resolveTTSApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey) return clientKey;
-  return getConfig().tts[providerId]?.apiKey || '';
-}
-
-export function resolveTTSBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
-  if (clientBaseUrl) return clientBaseUrl;
-  return getConfig().tts[providerId]?.baseUrl;
-}
-
 // ---------------------------------------------------------------------------
 // Public API — ASR
 // ---------------------------------------------------------------------------
@@ -310,13 +338,15 @@ export function getServerASRProviders(): Record<string, { baseUrl?: string }> {
   return result;
 }
 
-export function resolveASRApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey) return clientKey;
-  return getConfig().asr[providerId]?.apiKey || '';
+export function getDefaultASRProviderId(): string | undefined {
+  return pickDefaultProvider(getConfig().asr, 'DEFAULT_ASR_PROVIDER');
 }
 
-export function resolveASRBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
-  if (clientBaseUrl) return clientBaseUrl;
+export function resolveASRApiKey(providerId: string): string {
+  return pickRotatingApiKey(`asr:${providerId}`, getConfig().asr[providerId]?.apiKey);
+}
+
+export function resolveASRBaseUrl(providerId: string): string | undefined {
   return getConfig().asr[providerId]?.baseUrl;
 }
 
@@ -334,13 +364,15 @@ export function getServerPDFProviders(): Record<string, { baseUrl?: string }> {
   return result;
 }
 
-export function resolvePDFApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey) return clientKey;
-  return getConfig().pdf[providerId]?.apiKey || '';
+export function getDefaultPDFProviderId(): string | undefined {
+  return pickDefaultProvider(getConfig().pdf, 'DEFAULT_PDF_PROVIDER');
 }
 
-export function resolvePDFBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
-  if (clientBaseUrl) return clientBaseUrl;
+export function resolvePDFApiKey(providerId: string): string {
+  return pickRotatingApiKey(`pdf:${providerId}`, getConfig().pdf[providerId]?.apiKey);
+}
+
+export function resolvePDFBaseUrl(providerId: string): string | undefined {
   return getConfig().pdf[providerId]?.baseUrl;
 }
 
@@ -357,16 +389,15 @@ export function getServerImageProviders(): Record<string, Record<string, never>>
   return result;
 }
 
-export function resolveImageApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey) return clientKey;
-  return getConfig().image[providerId]?.apiKey || '';
+export function getDefaultImageProviderId(): string | undefined {
+  return pickDefaultProvider(getConfig().image, 'DEFAULT_IMAGE_PROVIDER');
 }
 
-export function resolveImageBaseUrl(
-  providerId: string,
-  clientBaseUrl?: string,
-): string | undefined {
-  if (clientBaseUrl) return clientBaseUrl;
+export function resolveImageApiKey(providerId: string): string {
+  return pickRotatingApiKey(`image:${providerId}`, getConfig().image[providerId]?.apiKey);
+}
+
+export function resolveImageBaseUrl(providerId: string): string | undefined {
   return getConfig().image[providerId]?.baseUrl;
 }
 
@@ -383,16 +414,15 @@ export function getServerVideoProviders(): Record<string, Record<string, never>>
   return result;
 }
 
-export function resolveVideoApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey) return clientKey;
-  return getConfig().video[providerId]?.apiKey || '';
+export function getDefaultVideoProviderId(): string | undefined {
+  return pickDefaultProvider(getConfig().video, 'DEFAULT_VIDEO_PROVIDER');
 }
 
-export function resolveVideoBaseUrl(
-  providerId: string,
-  clientBaseUrl?: string,
-): string | undefined {
-  if (clientBaseUrl) return clientBaseUrl;
+export function resolveVideoApiKey(providerId: string): string {
+  return pickRotatingApiKey(`video:${providerId}`, getConfig().video[providerId]?.apiKey);
+}
+
+export function resolveVideoBaseUrl(providerId: string): string | undefined {
   return getConfig().video[providerId]?.baseUrl;
 }
 
@@ -411,10 +441,12 @@ export function getServerWebSearchProviders(): Record<string, { baseUrl?: string
   return result;
 }
 
-/** Resolve Tavily API key: client key > server key > TAVILY_API_KEY env > empty */
-export function resolveWebSearchApiKey(clientKey?: string): string {
-  if (clientKey) return clientKey;
+export function getDefaultWebSearchProviderId(): string | undefined {
+  return pickDefaultProvider(getConfig().webSearch, 'DEFAULT_WEB_SEARCH_PROVIDER') || 'tavily';
+}
+
+/** Resolve Tavily API key from server config only, with comma-separated round-robin support. */
+export function resolveWebSearchApiKey(): string {
   const serverKey = getConfig().webSearch.tavily?.apiKey;
-  if (serverKey) return serverKey;
-  return process.env.TAVILY_API_KEY || '';
+  return pickRotatingApiKey('web-search:tavily', serverKey || process.env.TAVILY_API_KEY);
 }

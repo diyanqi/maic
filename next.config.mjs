@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
+const cdnPrefix = process.env.NODE_ENV === 'production' ? 'https://maic.amzcd.top' : undefined;
+
 const nextConfig = {
   output: process.env.VERCEL ? undefined : 'standalone',
+  assetPrefix: cdnPrefix,
   transpilePackages: ['mathml2omml', 'pptxgenjs'],
   serverExternalPackages: [],
   outputFileTracingExcludes: {

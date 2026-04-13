@@ -307,12 +307,13 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 
 // Initialize default audio config
 const getDefaultAudioConfig = () => ({
-  ttsProviderId: 'browser-native-tts' as TTSProviderId,
-  ttsVoice: 'default',
+  ttsProviderId: 'edge-tts' as TTSProviderId,
+  ttsVoice: 'zh-CN-XiaoxiaoNeural',
   ttsSpeed: 1.0,
   asrProviderId: 'browser-native' as ASRProviderId,
   asrLanguage: 'zh',
   ttsProvidersConfig: {
+    'edge-tts': { apiKey: '', baseUrl: '', enabled: true },
     'openai-tts': { apiKey: '', baseUrl: '', enabled: true },
     'azure-tts': { apiKey: '', baseUrl: '', enabled: false },
     'glm-tts': { apiKey: '', baseUrl: '', enabled: false },
@@ -774,7 +775,7 @@ export const useSettingsStore = create<SettingsState>()(
         setImageGenerationEnabled: (enabled) => {
           if (enabled) {
             const cfg = get().imageProvidersConfig;
-            const hasUsable = Object.values(cfg).some((c) => c.isServerConfigured || c.apiKey);
+            const hasUsable = Object.values(cfg).some((c) => c.isServerConfigured);
             if (!hasUsable) return;
           }
           set({ imageGenerationEnabled: enabled });
@@ -782,7 +783,7 @@ export const useSettingsStore = create<SettingsState>()(
         setVideoGenerationEnabled: (enabled) => {
           if (enabled) {
             const cfg = get().videoProvidersConfig;
-            const hasUsable = Object.values(cfg).some((c) => c.isServerConfigured || c.apiKey);
+            const hasUsable = Object.values(cfg).some((c) => c.isServerConfigured);
             if (!hasUsable) return;
           }
           set({ videoGenerationEnabled: enabled });
@@ -1057,17 +1058,13 @@ export const useSettingsStore = create<SettingsState>()(
               }
 
               // === Validate current selections against updated configs ===
-              // Build fallback: server-configured first, then client-key-only
+              // Build fallback: server-configured only.
               const buildFallback = <T extends string>(
                 config: Record<string, { isServerConfigured?: boolean; apiKey?: string }>,
-              ): T[] => [
-                ...Object.entries(config)
+              ): T[] =>
+                Object.entries(config)
                   .filter(([, c]) => c.isServerConfigured)
-                  .map(([id]) => id as T),
-                ...Object.entries(config)
-                  .filter(([, c]) => !c.isServerConfigured && !!c.apiKey)
-                  .map(([id]) => id as T),
-              ];
+                  .map(([id]) => id as T);
 
               const llmFallback = buildFallback<ProviderId>(newProvidersConfig);
               const ttsFallback = buildFallback<TTSProviderId>(newTTSConfig);

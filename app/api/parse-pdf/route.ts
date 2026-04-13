@@ -1,11 +1,14 @@
 import { NextRequest } from 'next/server';
 import { parsePDF } from '@/lib/pdf/pdf-providers';
-import { resolvePDFApiKey, resolvePDFBaseUrl } from '@/lib/server/provider-config';
+import {
+  getDefaultPDFProviderId,
+  resolvePDFApiKey,
+  resolvePDFBaseUrl,
+} from '@/lib/server/provider-config';
 import type { PDFProviderId } from '@/lib/pdf/types';
 import type { ParsedPdfContent } from '@/lib/types/pdf';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 const log = createLogger('Parse PDF');
 
 export async function POST(req: NextRequest) {
@@ -24,35 +27,20 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const pdfFile = formData.get('pdf') as File | null;
-    const providerId = formData.get('providerId') as PDFProviderId | null;
-    const apiKey = formData.get('apiKey') as string | null;
-    const baseUrl = formData.get('baseUrl') as string | null;
 
     if (!pdfFile) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'No PDF file provided');
     }
 
-    // providerId is required from the client — no server-side store to fall back to
-    const effectiveProviderId = providerId || ('unpdf' as PDFProviderId);
+    const effectiveProviderId =
+      (getDefaultPDFProviderId() as PDFProviderId | undefined) || ('unpdf' as PDFProviderId);
     pdfFileName = pdfFile?.name;
     resolvedProviderId = effectiveProviderId;
 
-    const clientBaseUrl = baseUrl || undefined;
-    if (clientBaseUrl && process.env.NODE_ENV === 'production') {
-      const ssrfError = await validateUrlForSSRF(clientBaseUrl);
-      if (ssrfError) {
-        return apiError('INVALID_URL', 403, ssrfError);
-      }
-    }
-
     const config = {
       providerId: effectiveProviderId,
-      apiKey: clientBaseUrl
-        ? apiKey || ''
-        : resolvePDFApiKey(effectiveProviderId, apiKey || undefined),
-      baseUrl: clientBaseUrl
-        ? clientBaseUrl
-        : resolvePDFBaseUrl(effectiveProviderId, baseUrl || undefined),
+      apiKey: resolvePDFApiKey(effectiveProviderId),
+      baseUrl: resolvePDFBaseUrl(effectiveProviderId),
     };
 
     // Convert PDF to buffer

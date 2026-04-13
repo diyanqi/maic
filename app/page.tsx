@@ -264,22 +264,10 @@ function HomePage() {
 
       let pdfStorageKey: string | undefined;
       let pdfFileName: string | undefined;
-      let pdfProviderId: string | undefined;
-      let pdfProviderConfig: { apiKey?: string; baseUrl?: string } | undefined;
 
       if (form.pdfFile) {
         pdfStorageKey = await storePdfBlob(form.pdfFile);
         pdfFileName = form.pdfFile.name;
-
-        const settings = useSettingsStore.getState();
-        pdfProviderId = settings.pdfProviderId;
-        const providerCfg = settings.pdfProvidersConfig?.[settings.pdfProviderId];
-        if (providerCfg) {
-          pdfProviderConfig = {
-            apiKey: providerCfg.apiKey,
-            baseUrl: providerCfg.baseUrl,
-          };
-        }
       }
 
       const sessionState = {
@@ -290,8 +278,6 @@ function HomePage() {
         imageStorageIds: [],
         pdfStorageKey,
         pdfFileName,
-        pdfProviderId,
-        pdfProviderConfig,
         sceneOutlines: null,
         currentStep: 'generating' as const,
       };

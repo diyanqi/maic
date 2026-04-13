@@ -20,8 +20,6 @@ export interface GenerationSessionState {
   // PDF deferred parsing fields
   pdfStorageKey?: string;
   pdfFileName?: string;
-  pdfProviderId?: string;
-  pdfProviderConfig?: { apiKey?: string; baseUrl?: string };
   // Web search context
   researchContext?: string;
   researchSources?: Array<{ title: string; url: string }>;

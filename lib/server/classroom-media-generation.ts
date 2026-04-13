@@ -19,13 +19,10 @@ import { isMediaPlaceholder } from '@/lib/store/media-generation';
 import {
   getServerImageProviders,
   getServerVideoProviders,
-  getServerTTSProviders,
   resolveImageApiKey,
   resolveImageBaseUrl,
   resolveVideoApiKey,
   resolveVideoBaseUrl,
-  resolveTTSApiKey,
-  resolveTTSBaseUrl,
 } from '@/lib/server/provider-config';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { Scene } from '@/lib/types/stage';
@@ -209,24 +206,7 @@ export async function generateTTSForClassroom(
   const audioDir = path.join(CLASSROOMS_DIR, classroomId, 'audio');
   await ensureDir(audioDir);
 
-  // Resolve TTS provider (exclude browser-native-tts)
-  const ttsProviderIds = Object.keys(getServerTTSProviders()).filter(
-    (id) => id !== 'browser-native-tts',
-  );
-  if (ttsProviderIds.length === 0) {
-    log.warn('No server TTS provider configured, skipping TTS generation');
-    return;
-  }
-
-  const providerId = ttsProviderIds[0] as TTSProviderId;
-  const apiKey = resolveTTSApiKey(providerId);
-  if (!apiKey) {
-    log.warn(`No API key for TTS provider "${providerId}", skipping TTS generation`);
-    return;
-  }
-  const ttsBaseUrl =
-    resolveTTSBaseUrl(providerId) ||
-    TTS_PROVIDERS[providerId as keyof typeof TTS_PROVIDERS]?.defaultBaseUrl;
+  const providerId = 'edge-tts' as TTSProviderId;
   const voice = DEFAULT_TTS_VOICES[providerId as keyof typeof DEFAULT_TTS_VOICES] || 'default';
   const format =
     TTS_PROVIDERS[providerId as keyof typeof TTS_PROVIDERS]?.supportedFormats?.[0] || 'mp3';
@@ -248,8 +228,6 @@ export async function generateTTSForClassroom(
           {
             providerId,
             modelId: DEFAULT_TTS_MODELS[providerId as keyof typeof DEFAULT_TTS_MODELS] || '',
-            apiKey,
-            baseUrl: ttsBaseUrl,
             voice,
             speed: speechAction.speed,
           },

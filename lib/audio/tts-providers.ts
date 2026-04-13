@@ -95,6 +95,7 @@
 import type { TTSModelConfig } from './types';
 import { isCustomTTSProvider } from './types';
 import { TTS_PROVIDERS } from './constants';
+import { EdgeTTS } from 'edge-tts-universal';
 
 /**
  * Result of TTS generation
@@ -136,6 +137,9 @@ export async function generateTTS(
   }
 
   switch (config.providerId) {
+    case 'edge-tts':
+      return await generateEdgeUniversalTTS(config, text);
+
     case 'openai-tts':
       return await generateOpenAITTS(config, text);
 
@@ -165,6 +169,37 @@ export async function generateTTS(
         return await generateOpenAITTS(config, text);
       }
       throw new Error(`Unsupported TTS provider: ${config.providerId}`);
+  }
+}
+
+/**
+ * Edge TTS Universal implementation (no API key required)
+ */
+async function generateEdgeUniversalTTS(
+  config: TTSModelConfig,
+  text: string,
+): Promise<TTSGenerationResult> {
+  const voice = config.voice || 'zh-CN-XiaoxiaoNeural';
+
+  try {
+    const tts = new EdgeTTS(text, voice);
+    const result = await tts.synthesize();
+    const audioBuffer = Buffer.from(await result.audio.arrayBuffer());
+
+    return {
+      audio: new Uint8Array(audioBuffer),
+      format: 'mp3',
+    };
+  } catch {
+    // Retry with a safe fallback voice when custom voice is not supported.
+    const tts = new EdgeTTS(text, 'zh-CN-XiaoxiaoNeural');
+    const result = await tts.synthesize();
+    const audioBuffer = Buffer.from(await result.audio.arrayBuffer());
+
+    return {
+      audio: new Uint8Array(audioBuffer),
+      format: 'mp3',
+    };
   }
 }
 

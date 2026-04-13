@@ -111,11 +111,6 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
           ttsProvidersConfig[selectedProviderId]?.modelId || ttsProvider?.defaultModelId || '',
         voice: effectiveVoice,
         speed: ttsSpeed,
-        apiKey: ttsProvidersConfig[selectedProviderId]?.apiKey,
-        baseUrl:
-          ttsProvidersConfig[selectedProviderId]?.baseUrl ||
-          providerConfig?.customDefaultBaseUrl ||
-          '',
       });
       setTestStatus('success');
       setTestMessage(t('settings.ttsTestSuccess'));

@@ -73,6 +73,43 @@ export const MINIMAX_TTS_MODELS = [
 ] as const;
 
 export const TTS_PROVIDERS: Record<BuiltInTTSProviderId, TTSProviderConfig> = {
+  'edge-tts': {
+    id: 'edge-tts',
+    name: 'Edge TTS Universal',
+    requiresApiKey: false,
+    icon: '/logos/browser.svg',
+    models: [],
+    defaultModelId: '',
+    voices: [
+      {
+        id: 'zh-CN-XiaoxiaoNeural',
+        name: '晓晓 (Neural)',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'zh-CN-YunxiNeural',
+        name: '云希 (Neural)',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'en-US-AriaNeural',
+        name: 'Aria (Neural)',
+        language: 'en-US',
+        gender: 'female',
+      },
+      {
+        id: 'en-US-GuyNeural',
+        name: 'Guy (Neural)',
+        language: 'en-US',
+        gender: 'male',
+      },
+    ],
+    supportedFormats: ['mp3'],
+    speedRange: { min: 0.5, max: 2.0, default: 1.0 },
+  },
+
   'openai-tts': {
     id: 'openai-tts',
     name: 'OpenAI TTS',
@@ -1126,6 +1163,7 @@ export const ASR_PROVIDERS: Record<BuiltInASRProviderId, ASRProviderConfig> = {
  * Used when switching providers or testing a non-active provider.
  */
 export const DEFAULT_TTS_VOICES: Record<BuiltInTTSProviderId, string> = {
+  'edge-tts': 'zh-CN-XiaoxiaoNeural',
   'openai-tts': 'alloy',
   'azure-tts': 'zh-CN-XiaoxiaoNeural',
   'glm-tts': 'tongtong',
@@ -1137,6 +1175,7 @@ export const DEFAULT_TTS_VOICES: Record<BuiltInTTSProviderId, string> = {
 };
 
 export const DEFAULT_TTS_MODELS: Record<BuiltInTTSProviderId, string> = {
+  'edge-tts': '',
   'openai-tts': 'gpt-4o-mini-tts',
   'azure-tts': '',
   'glm-tts': 'glm-tts',

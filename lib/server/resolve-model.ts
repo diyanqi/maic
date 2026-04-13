@@ -7,8 +7,13 @@
 
 import type { NextRequest } from 'next/server';
 import { getModel, parseModelString, type ModelWithInfo } from '@/lib/ai/providers';
-import { resolveApiKey, resolveBaseUrl, resolveProxy } from '@/lib/server/provider-config';
-import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import {
+  getDefaultLLMModelId,
+  getDefaultLLMProviderId,
+  resolveApiKey,
+  resolveBaseUrl,
+  resolveProxy,
+} from '@/lib/server/provider-config';
 
 export interface ResolvedModel extends ModelWithInfo {
   /** Original model string (e.g. "openai/gpt-4o-mini") */
@@ -30,24 +35,29 @@ export async function resolveModel(params: {
   baseUrl?: string;
   providerType?: string;
 }): Promise<ResolvedModel> {
-  const modelString = params.modelString || process.env.DEFAULT_MODEL || 'gpt-4o-mini';
-  const { providerId, modelId } = parseModelString(modelString);
+  let providerId: string | undefined;
+  let modelId: string | undefined;
 
-  // SSRF validation applies only to client-supplied base URLs.
-  // Server-configured URLs (e.g. OLLAMA_BASE_URL from env/YAML) flow through
-  // resolveBaseUrl() and bypass this check — they're trusted by the operator.
-  const clientBaseUrl = params.baseUrl || undefined;
-  if (clientBaseUrl && process.env.NODE_ENV === 'production') {
-    const ssrfError = await validateUrlForSSRF(clientBaseUrl);
-    if (ssrfError) {
-      throw new Error(ssrfError);
-    }
+  if (process.env.DEFAULT_MODEL) {
+    const parsed = parseModelString(process.env.DEFAULT_MODEL);
+    providerId = parsed.providerId;
+    modelId = parsed.modelId;
   }
 
-  const apiKey = clientBaseUrl
-    ? params.apiKey || ''
-    : resolveApiKey(providerId, params.apiKey || '');
-  const baseUrl = clientBaseUrl ? clientBaseUrl : resolveBaseUrl(providerId, params.baseUrl);
+  if (!providerId) {
+    providerId = getDefaultLLMProviderId();
+    modelId = providerId ? getDefaultLLMModelId(providerId) : undefined;
+  }
+
+  if (!providerId || !modelId) {
+    const fallback = parseModelString(params.modelString || 'openai:gpt-4o-mini');
+    providerId = fallback.providerId;
+    modelId = fallback.modelId;
+  }
+
+  const modelString = `${providerId}:${modelId}`;
+  const apiKey = resolveApiKey(providerId);
+  const baseUrl = resolveBaseUrl(providerId);
   const proxy = resolveProxy(providerId);
   const { model, modelInfo } = getModel({
     providerId,

@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from 'react';
-import { ASR_PROVIDERS } from '@/lib/audio/constants';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('AudioRecorder');
@@ -47,27 +46,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         // Note: This requires importing useSettingsStore in browser context
         if (typeof window !== 'undefined') {
           const { useSettingsStore } = await import('@/lib/store/settings');
-          const { asrProviderId, asrLanguage, asrProvidersConfig } = useSettingsStore.getState();
-
-          formData.append('providerId', asrProviderId);
-          formData.append(
-            'modelId',
-            asrProvidersConfig?.[asrProviderId]?.modelId ||
-              ASR_PROVIDERS[asrProviderId as keyof typeof ASR_PROVIDERS]?.defaultModelId ||
-              '',
-          );
+          const { asrLanguage } = useSettingsStore.getState();
           formData.append('language', asrLanguage);
-
-          // Append API key and base URL if configured
-          const providerConfig = asrProvidersConfig?.[asrProviderId];
-          if (providerConfig?.apiKey?.trim()) {
-            formData.append('apiKey', providerConfig.apiKey);
-          }
-          const effectiveBaseUrl =
-            providerConfig?.baseUrl?.trim() || providerConfig?.customDefaultBaseUrl || '';
-          if (effectiveBaseUrl) {
-            formData.append('baseUrl', effectiveBaseUrl);
-          }
         }
 
         const response = await fetch('/api/transcription', {

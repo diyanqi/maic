@@ -85,6 +85,7 @@ const TABS: Array<{ id: TabId; icon: LucideIcon; label: string }> = [
 /** Localized TTS provider name (mirrors audio-settings.tsx) */
 function getTTSProviderName(providerId: TTSProviderId, t: (key: string) => string): string {
   const names: Record<TTSProviderId, string> = {
+    'edge-tts': 'Edge TTS Universal',
     'openai-tts': t('settings.providerOpenAITTS'),
     'azure-tts': t('settings.providerAzureTTS'),
     'glm-tts': t('settings.providerGLMTTS'),
@@ -166,7 +167,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
     configs: Record<string, { apiKey?: string; isServerConfigured?: boolean }>,
     id: string,
     needsKey: boolean,
-  ) => !needsKey || !!configs[id]?.apiKey || !!configs[id]?.isServerConfigured;
+  ) => !needsKey || !!configs[id]?.isServerConfigured;
 
   // ─── Dynamic browser voices ───
   const [browserVoices, setBrowserVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -273,8 +274,6 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
         modelId: providerConfig?.modelId,
         voice: ttsVoice,
         speed: ttsSpeed,
-        apiKey: providerConfig?.apiKey,
-        baseUrl: providerConfig?.baseUrl || providerConfig?.customDefaultBaseUrl,
       });
     } catch (error) {
       const message =
@@ -398,15 +397,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
               enabled={imageGenerationEnabled}
               onToggle={setImageGenerationEnabled}
             >
-              <GroupedSelect
-                groups={imageGroups}
-                selectedGroupId={imageProviderId}
-                selectedItemId={imageModelId}
-                onSelect={(gid, iid) => {
-                  setImageProvider(gid as ImageProviderId);
-                  setImageModelId(iid);
-                }}
-              />
+              <p className="text-[11px] text-muted-foreground/60">Provider 由服务端统一管理</p>
             </TabPanel>
           )}
 
@@ -417,15 +408,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
               enabled={videoGenerationEnabled}
               onToggle={setVideoGenerationEnabled}
             >
-              <GroupedSelect
-                groups={videoGroups}
-                selectedGroupId={videoProviderId}
-                selectedItemId={videoModelId}
-                onSelect={(gid, iid) => {
-                  setVideoProvider(gid as VideoProviderId);
-                  setVideoModelId(iid);
-                }}
-              />
+              <p className="text-[11px] text-muted-foreground/60">Provider 由服务端统一管理</p>
             </TabPanel>
           )}
 
@@ -449,31 +432,9 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
               enabled={asrEnabled}
               onToggle={setASREnabled}
             >
-              <GroupedSelect
-                groups={asrGroups}
-                selectedGroupId={asrProviderId}
-                selectedItemId={asrLanguage}
-                onSelect={(gid, iid) => {
-                  setASRProvider(gid as ASRProviderId);
-                  setASRLanguage(iid);
-                }}
-              />
+              <p className="text-[11px] text-muted-foreground/60">Provider 由服务端统一管理</p>
             </TabPanel>
           )}
-        </div>
-
-        {/* ── Footer ── */}
-        <div className="border-t border-border/40">
-          <button
-            onClick={() => {
-              setOpen(false);
-              onSettingsOpen(activeTab);
-            }}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-          >
-            <span>{t('toolbar.advancedSettings')}</span>
-            <ChevronRight className="size-3" />
-          </button>
         </div>
       </PopoverContent>
     </Popover>

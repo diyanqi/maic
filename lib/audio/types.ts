@@ -79,6 +79,7 @@
  * Keep in sync with TTS_PROVIDERS registry in constants.ts
  */
 export type BuiltInTTSProviderId =
+  | 'edge-tts'
   | 'openai-tts'
   | 'azure-tts'
   | 'glm-tts'
