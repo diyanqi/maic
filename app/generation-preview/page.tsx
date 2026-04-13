@@ -31,6 +31,8 @@ import { type GenerationSessionState, ALL_STEPS, getActiveSteps } from './types'
 import { StepVisualizer } from './components/visualizers';
 
 const log = createLogger('GenerationPreview');
+const OUTLINE_REQUEST_TIMEOUT_MS = 25_000;
+const OUTLINE_MAX_ATTEMPTS = 3;
 
 function GenerationPreviewContent() {
   const router = useRouter();
@@ -100,6 +102,23 @@ function GenerationPreviewContent() {
       'x-image-generation-enabled': String(settings.imageGenerationEnabled ?? false),
       'x-video-generation-enabled': String(settings.videoGenerationEnabled ?? false),
     };
+  };
+
+  const readApiErrorMessage = async (response: Response, fallback: string): Promise<string> => {
+    const statusLine = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+    const contentType = response.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      const data = (await response.json().catch(() => null)) as
+        | { error?: string; message?: string }
+        | null;
+      const message = data?.error || data?.message;
+      return message ? `${message} (${statusLine})` : `${fallback} (${statusLine})`;
+    }
+
+    const text = await response.text().catch(() => '');
+    const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 180);
+    return snippet ? `${statusLine}: ${snippet}` : `${fallback} (${statusLine})`;
   };
 
   // Auto-start generation when session is loaded
@@ -341,98 +360,167 @@ function GenerationPreviewContent() {
         log.debug('=== Generating outlines (SSE) ===');
         setStreamingOutlines([]);
 
-        const outlineResult = await new Promise<{
-          outlines: SceneOutline[];
-          languageDirective: string;
-        }>((resolve, reject) => {
-          const collected: SceneOutline[] = [];
-          let directive: string | undefined;
+        const persistOutlineCheckpoint = (
+          partialOutlines: SceneOutline[],
+          directive?: string,
+        ): void => {
+          const updatedSession = {
+            ...currentSession,
+            sceneOutlines: partialOutlines,
+            languageDirective: directive || currentSession.languageDirective,
+          };
+          setSession(updatedSession);
+          sessionStorage.setItem('generationSession', JSON.stringify(updatedSession));
+          currentSession = updatedSession;
+        };
 
-          fetch('/api/generate/scene-outlines-stream', {
-            method: 'POST',
-            headers: getApiHeaders(),
-            body: JSON.stringify({
-              requirements: currentSession.requirements,
-              pdfText: currentSession.pdfText,
-              pdfImages: currentSession.pdfImages,
-              imageMapping,
-              researchContext: currentSession.researchContext,
-            }),
-            signal,
-          })
-            .then((res) => {
-              if (!res.ok) {
-                return res.json().then((d) => {
-                  reject(new Error(d.error || t('generation.outlineGenerateFailed')));
-                });
-              }
+        let outlineResult:
+          | {
+              outlines: SceneOutline[];
+              languageDirective: string;
+            }
+          | undefined;
+        let bestPartialOutlines: SceneOutline[] = currentSession.sceneOutlines || [];
+        let bestDirective = currentSession.languageDirective;
 
-              const reader = res.body?.getReader();
-              if (!reader) {
-                reject(new Error(t('generation.streamNotReadable')));
-                return;
-              }
+        for (let attempt = 1; attempt <= OUTLINE_MAX_ATTEMPTS; attempt++) {
+          try {
+            const attemptResult = await new Promise<{
+              outlines: SceneOutline[];
+              languageDirective: string;
+            }>((resolve, reject) => {
+              const collected: SceneOutline[] = [];
+              let directive: string | undefined;
 
-              const decoder = new TextDecoder();
-              let sseBuffer = '';
+              const timeoutController = new AbortController();
+              const timeoutId = setTimeout(() => timeoutController.abort(), OUTLINE_REQUEST_TIMEOUT_MS);
+              const mergedSignal = AbortSignal.any([signal, timeoutController.signal]);
 
-              const pump = (): Promise<void> =>
-                reader.read().then(({ done, value }) => {
-                  if (value) {
-                    sseBuffer += decoder.decode(value, { stream: !done });
-                    const lines = sseBuffer.split('\n');
-                    sseBuffer = lines.pop() || '';
+              fetch('/api/generate/scene-outlines-stream', {
+                method: 'POST',
+                headers: getApiHeaders(),
+                body: JSON.stringify({
+                  requirements: currentSession.requirements,
+                  pdfText: currentSession.pdfText,
+                  pdfImages: currentSession.pdfImages,
+                  imageMapping,
+                  researchContext: currentSession.researchContext,
+                }),
+                signal: mergedSignal,
+              })
+                .then(async (res) => {
+                  if (!res.ok) {
+                    reject(new Error(await readApiErrorMessage(res, t('generation.outlineGenerateFailed'))));
+                    return;
+                  }
 
-                    for (const line of lines) {
-                      if (!line.startsWith('data: ')) continue;
-                      try {
-                        const evt = JSON.parse(line.slice(6));
-                        if (evt.type === 'languageDirective') {
-                          directive = evt.data;
-                        } else if (evt.type === 'outline') {
-                          collected.push(evt.data);
-                          setStreamingOutlines([...collected]);
-                        } else if (evt.type === 'retry') {
-                          collected.length = 0;
-                          setStreamingOutlines([]);
-                          setStatusMessage(t('generation.outlineRetrying'));
-                        } else if (evt.type === 'done') {
-                          directive = evt.languageDirective || directive;
+                  const reader = res.body?.getReader();
+                  if (!reader) {
+                    reject(new Error(t('generation.streamNotReadable')));
+                    return;
+                  }
+
+                  const decoder = new TextDecoder();
+                  let sseBuffer = '';
+
+                  const pump = (): Promise<void> =>
+                    reader.read().then(({ done, value }) => {
+                      if (value) {
+                        sseBuffer += decoder.decode(value, { stream: !done });
+                        const lines = sseBuffer.split('\n');
+                        sseBuffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                          if (!line.startsWith('data: ')) continue;
+                          try {
+                            const evt = JSON.parse(line.slice(6));
+                            if (evt.type === 'languageDirective') {
+                              directive = evt.data;
+                            } else if (evt.type === 'outline') {
+                              collected.push(evt.data);
+                              setStreamingOutlines([...collected]);
+                              persistOutlineCheckpoint([...collected], directive);
+                            } else if (evt.type === 'retry') {
+                              setStatusMessage(t('generation.outlineRetrying'));
+                            } else if (evt.type === 'done') {
+                              directive = evt.languageDirective || directive;
+                              resolve({
+                                outlines: evt.outlines || collected,
+                                languageDirective:
+                                  directive ||
+                                  'Teach in the language that matches the user requirement.',
+                              });
+                              return;
+                            } else if (evt.type === 'error') {
+                              reject(new Error(evt.error));
+                              return;
+                            }
+                          } catch (e) {
+                            log.error('Failed to parse outline SSE:', line, e);
+                          }
+                        }
+                      }
+                      if (done) {
+                        if (collected.length > 0) {
                           resolve({
-                            outlines: evt.outlines || collected,
+                            outlines: collected,
                             languageDirective:
                               directive ||
                               'Teach in the language that matches the user requirement.',
                           });
-                          return;
-                        } else if (evt.type === 'error') {
-                          reject(new Error(evt.error));
-                          return;
+                        } else {
+                          reject(new Error(t('generation.outlineEmptyResponse')));
                         }
-                      } catch (e) {
-                        log.error('Failed to parse outline SSE:', line, e);
+                        return;
                       }
-                    }
-                  }
-                  if (done) {
-                    if (collected.length > 0) {
-                      resolve({
-                        outlines: collected,
-                        languageDirective:
-                          directive || 'Teach in the language that matches the user requirement.',
-                      });
-                    } else {
-                      reject(new Error(t('generation.outlineEmptyResponse')));
-                    }
-                    return;
-                  }
-                  return pump();
-                });
+                      return pump();
+                    });
 
-              pump().catch(reject);
-            })
-            .catch(reject);
-        });
+                  pump().catch(reject).finally(() => {
+                    clearTimeout(timeoutId);
+                  });
+                })
+                .catch((err) => {
+                  clearTimeout(timeoutId);
+                  reject(err);
+                });
+            });
+
+            outlineResult = attemptResult;
+            break;
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            const snapshot = currentSession.sceneOutlines || [];
+            if (snapshot.length > bestPartialOutlines.length) {
+              bestPartialOutlines = snapshot;
+              bestDirective = currentSession.languageDirective;
+            }
+
+            if (attempt < OUTLINE_MAX_ATTEMPTS) {
+              setStatusMessage(t('generation.outlineRetrying'));
+              log.warn(`Outline attempt ${attempt} failed: ${message}`);
+              continue;
+            }
+
+            if (bestPartialOutlines.length > 0) {
+              outlineResult = {
+                outlines: bestPartialOutlines,
+                languageDirective:
+                  bestDirective || 'Teach in the language that matches the user requirement.',
+              };
+              log.warn(
+                `Using persisted partial outlines (${bestPartialOutlines.length}) after timeout/failure`,
+              );
+              break;
+            }
+
+            throw err;
+          }
+        }
+
+        if (!outlineResult) {
+          throw new Error(t('generation.outlineGenerateFailed'));
+        }
 
         outlines = outlineResult.outlines;
         languageDirective = outlineResult.languageDirective;
@@ -663,8 +751,7 @@ function GenerationPreviewContent() {
       });
 
       if (!contentResp.ok) {
-        const errorData = await contentResp.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(errorData.error || t('generation.sceneGenerateFailed'));
+        throw new Error(await readApiErrorMessage(contentResp, t('generation.sceneGenerateFailed')));
       }
 
       const contentData = await contentResp.json();
@@ -693,8 +780,7 @@ function GenerationPreviewContent() {
       });
 
       if (!actionsResp.ok) {
-        const errorData = await actionsResp.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(errorData.error || t('generation.sceneGenerateFailed'));
+        throw new Error(await readApiErrorMessage(actionsResp, t('generation.sceneGenerateFailed')));
       }
 
       const data = await actionsResp.json();

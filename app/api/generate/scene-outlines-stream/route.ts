@@ -37,6 +37,7 @@ import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 const log = createLogger('Outlines Stream');
 
 export const maxDuration = 300;
+const OUTLINES_MAX_OUTPUT_TOKENS = 3072;
 
 /**
  * Extract the languageDirective from the streamed wrapper JSON.
@@ -253,6 +254,11 @@ export async function POST(req: NextRequest) {
         try {
           startHeartbeat();
 
+          const maxOutputTokens = Math.min(
+            modelInfo?.outputWindow ?? OUTLINES_MAX_OUTPUT_TOKENS,
+            OUTLINES_MAX_OUTPUT_TOKENS,
+          );
+
           const streamParams = visionImages?.length
             ? {
                 model: languageModel,
@@ -263,13 +269,13 @@ export async function POST(req: NextRequest) {
                     content: buildVisionUserContent(prompts.user, visionImages),
                   },
                 ],
-                maxOutputTokens: modelInfo?.outputWindow,
+                maxOutputTokens,
               }
             : {
                 model: languageModel,
                 system: prompts.system,
                 prompt: prompts.user,
-                maxOutputTokens: modelInfo?.outputWindow,
+                maxOutputTokens,
               };
 
           let parsedOutlines: SceneOutline[] = [];
@@ -278,7 +284,7 @@ export async function POST(req: NextRequest) {
 
           for (let attempt = 1; attempt <= MAX_STREAM_RETRIES + 1; attempt++) {
             try {
-              const result = streamLLM(streamParams, 'scene-outlines-stream');
+              const result = streamLLM(streamParams, 'scene-outlines-stream', { enabled: false });
 
               let fullText = '';
               parsedOutlines = [];

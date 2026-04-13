@@ -29,7 +29,8 @@ import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 
 const log = createLogger('Scene Actions API');
 
-export const maxDuration = 60;
+export const maxDuration = 300;
+const ACTIONS_MAX_OUTPUT_TOKENS = 4096;
 
 export async function POST(req: NextRequest) {
   let outlineTitle: string | undefined;
@@ -92,6 +93,10 @@ export async function POST(req: NextRequest) {
       userPrompt: string,
       images?: Array<{ id: string; src: string }>,
     ): Promise<string> => {
+      const maxOutputTokens = Math.min(
+        modelInfo?.outputWindow ?? ACTIONS_MAX_OUTPUT_TOKENS,
+        ACTIONS_MAX_OUTPUT_TOKENS,
+      );
       if (images?.length && hasVision) {
         const result = await callLLM(
           {
@@ -103,7 +108,7 @@ export async function POST(req: NextRequest) {
                 content: buildVisionUserContent(userPrompt, images),
               },
             ],
-            maxOutputTokens: modelInfo?.outputWindow,
+            maxOutputTokens,
           },
           'scene-actions',
         );
@@ -114,7 +119,7 @@ export async function POST(req: NextRequest) {
           model: languageModel,
           system: systemPrompt,
           prompt: userPrompt,
-          maxOutputTokens: modelInfo?.outputWindow,
+          maxOutputTokens,
         },
         'scene-actions',
       );

@@ -30,6 +30,23 @@ interface SceneActionsResult {
   error?: string;
 }
 
+async function readApiErrorMessage(response: Response): Promise<string> {
+  const statusLine = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+  const contentType = response.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    const data = (await response.json().catch(() => null)) as
+      | { error?: string; message?: string }
+      | null;
+    const message = data?.error || data?.message;
+    return message ? `${message} (${statusLine})` : statusLine;
+  }
+
+  const text = await response.text().catch(() => '');
+  const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 180);
+  return snippet ? `${statusLine}: ${snippet}` : statusLine;
+}
+
 function getApiHeaders(): HeadersInit {
   const config = getCurrentModelConfig();
   const settings = useSettingsStore.getState();
@@ -70,8 +87,7 @@ async function fetchSceneContent(
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({ error: 'Request failed' }));
-    return { success: false, error: data.error || `HTTP ${response.status}` };
+    return { success: false, error: await readApiErrorMessage(response) };
   }
 
   return response.json();
@@ -99,8 +115,7 @@ async function fetchSceneActions(
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({ error: 'Request failed' }));
-    return { success: false, error: data.error || `HTTP ${response.status}` };
+    return { success: false, error: await readApiErrorMessage(response) };
   }
 
   return response.json();
