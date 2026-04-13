@@ -494,15 +494,9 @@ export class PlaybackEngine {
           .play(speechAction.audioId || '', speechAction.audioUrl)
           .then((audioStarted) => {
             if (!audioStarted) {
-              // No pre-generated audio — try browser-native TTS if selected
               const settings = useSettingsStore.getState();
-              if (
-                settings.ttsEnabled &&
-                settings.ttsProviderId === 'browser-native-tts' &&
-                typeof window !== 'undefined' &&
-                window.speechSynthesis
-              ) {
-                this.playBrowserTTS(speechAction);
+              if (settings.ttsEnabled) {
+                void this.playOnDemandEdgeTTS(speechAction, scheduleReadingTimer);
               } else {
                 scheduleReadingTimer();
               }
@@ -591,6 +585,66 @@ export class PlaybackEngine {
         // Unknown action, skip
         this.processNext();
         break;
+    }
+  }
+
+  /**
+   * Generate and play speech audio on-demand via server-side edge-tts.
+   * Falls back to reading-time timer when generation fails.
+   */
+  private async playOnDemandEdgeTTS(
+    speechAction: SpeechAction,
+    onFallback: () => void,
+  ): Promise<void> {
+    const settings = useSettingsStore.getState();
+    const playbackSpeed = this.callbacks.getPlaybackSpeed?.() ?? 1;
+    const ttsVoice = settings.ttsVoice || 'zh-CN-XiaoxiaoNeural';
+    const runtimeAudioId =
+      speechAction.audioId || `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    try {
+      const res = await fetch('/api/generate/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: speechAction.text,
+          audioId: runtimeAudioId,
+          ttsProviderId: 'edge-tts',
+          ttsVoice,
+          ttsSpeed: (settings.ttsSpeed ?? 1) * playbackSpeed,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`TTS API error: ${res.status}`);
+      }
+
+      const data = (await res.json()) as { base64?: string; format?: string };
+      if (!data.base64) {
+        throw new Error('No audio in response');
+      }
+
+      // If paused before audio becomes ready, rewind one step so resume()
+      // replays the same speech action instead of skipping it.
+      if (this.mode !== 'playing') {
+        if (this.mode === 'paused') {
+          this.actionIndex = Math.max(0, this.actionIndex - 1);
+        }
+        return;
+      }
+
+      const audioUrl = `data:audio/${data.format || 'mp3'};base64,${data.base64}`;
+      const started = await this.audioPlayer.play(runtimeAudioId, audioUrl);
+      if (!started) {
+        onFallback();
+      }
+    } catch (err) {
+      log.error('On-demand edge-tts generation failed:', err);
+      if (this.mode === 'paused') {
+        this.actionIndex = Math.max(0, this.actionIndex - 1);
+        return;
+      }
+      onFallback();
     }
   }
 

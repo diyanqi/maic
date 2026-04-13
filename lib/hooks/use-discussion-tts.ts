@@ -131,30 +131,24 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
 
     isPlayingRef.current = true;
     const item = queueRef.current.shift()!;
-
-    // Browser TTS
-    if (item.providerId === 'browser-native-tts') {
-      currentProviderRef.current = item.providerId;
-      onAudioStateChangeRef.current?.(item.agentId, 'playing');
-      browserSpeakRef.current(item.text, item.voiceId);
-      return;
-    }
+    const effectiveProviderId =
+      item.providerId === 'browser-native-tts' ? ('edge-tts' as TTSProviderId) : item.providerId;
 
     // Server TTS — use the item's provider, not the global one
-    currentProviderRef.current = item.providerId;
+    currentProviderRef.current = effectiveProviderId;
     onAudioStateChangeRef.current?.(item.agentId, 'generating');
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
-      const providerConfig = ttsProvidersConfig[item.providerId];
+      const providerConfig = ttsProvidersConfig[effectiveProviderId];
       const res = await fetch('/api/generate/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: item.text,
           audioId: item.partId,
-          ttsProviderId: item.providerId,
+          ttsProviderId: effectiveProviderId,
           ttsModelId: item.modelId || providerConfig?.modelId,
           ttsVoice: item.voiceId,
           ttsSpeed: ttsSpeed,
@@ -233,7 +227,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
 
       if (!isPlayingRef.current) {
         processQueueRef.current();
-      } else if (providerId !== 'browser-native-tts') {
+      } else {
         onAudioStateChangeRef.current?.(agentId, 'generating');
       }
     },

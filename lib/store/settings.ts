@@ -941,6 +941,15 @@ export const useSettingsStore = create<SettingsState>()(
                   };
                 }
               }
+              // edge-tts is always served by our backend route and does not
+              // require user API key/baseUrl. Keep it available to prevent
+              // unintended fallback to browser-native TTS.
+              if (newTTSConfig['edge-tts']) {
+                newTTSConfig['edge-tts'] = {
+                  ...newTTSConfig['edge-tts'],
+                  isServerConfigured: true,
+                };
+              }
 
               // Merge ASR providers
               const newASRConfig = { ...state.asrProvidersConfig };
