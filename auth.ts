@@ -1,8 +1,8 @@
 import NextAuth from 'next-auth';
 import type { NextAuthConfig } from 'next-auth';
-import OIDC from 'next-auth/providers/oidc';
 
 type OAuthProviderMeta = { id: string; name: string };
+type AuthProvider = NonNullable<NextAuthConfig['providers']>[number];
 
 function parseCsv(value: string | undefined): string[] {
   if (!value) return [];
@@ -12,9 +12,13 @@ function parseCsv(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function buildProviders(): NonNullable<NextAuthConfig['providers']> {
+function buildProviders(): {
+  providers: NonNullable<NextAuthConfig['providers']>;
+  metadata: OAuthProviderMeta[];
+} {
   const enabled = parseCsv(process.env.AUTH_ENABLED_PROVIDERS);
   const providers: NonNullable<NextAuthConfig['providers']> = [];
+  const metadata: OAuthProviderMeta[] = [];
 
   const useOidc = enabled.length === 0 ? true : enabled.includes('oidc') || enabled.includes('oauth');
   if (
@@ -23,30 +27,27 @@ function buildProviders(): NonNullable<NextAuthConfig['providers']> {
     process.env.AUTH_OIDC_CLIENT_ID &&
     process.env.AUTH_OIDC_CLIENT_SECRET
   ) {
-    providers.push(
-      OIDC({
-        id: process.env.AUTH_OIDC_ID || 'oidc',
-        name: process.env.AUTH_OIDC_NAME || 'OAuth',
-        issuer: process.env.AUTH_OIDC_ISSUER,
-        clientId: process.env.AUTH_OIDC_CLIENT_ID,
-        clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET,
-        checks: ['pkce', 'state'],
-      }),
-    );
+    const id = process.env.AUTH_OIDC_ID || 'oidc';
+    const name = process.env.AUTH_OIDC_NAME || 'OAuth';
+    providers.push({
+      id,
+      name,
+      type: 'oidc',
+      issuer: process.env.AUTH_OIDC_ISSUER,
+      clientId: process.env.AUTH_OIDC_CLIENT_ID,
+      clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET,
+      checks: ['pkce', 'state'],
+    } as AuthProvider);
+    metadata.push({ id, name });
   }
 
-  return providers;
+  return { providers, metadata };
 }
 
-const providers = buildProviders();
+const { providers, metadata } = buildProviders();
 
 export function getOAuthProviderMetadata(): OAuthProviderMeta[] {
-  return providers
-    .map((provider) => ({
-      id: provider.id,
-      name: provider.name,
-    }))
-    .filter((provider) => provider.id && provider.name);
+  return metadata;
 }
 
 const authConfig: NextAuthConfig = {

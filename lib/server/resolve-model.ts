@@ -6,7 +6,7 @@
  */
 
 import type { NextRequest } from 'next/server';
-import { getModel, parseModelString, type ModelWithInfo } from '@/lib/ai/providers';
+import { getModel, parseModelString, type ModelWithInfo, type ProviderId } from '@/lib/ai/providers';
 import {
   getDefaultLLMModelId,
   getDefaultLLMProviderId,
@@ -35,7 +35,7 @@ export async function resolveModel(params: {
   baseUrl?: string;
   providerType?: string;
 }): Promise<ResolvedModel> {
-  let providerId: string | undefined;
+  let providerId: ProviderId | undefined;
   let modelId: string | undefined;
 
   if (process.env.DEFAULT_MODEL) {
@@ -45,7 +45,7 @@ export async function resolveModel(params: {
   }
 
   if (!providerId) {
-    providerId = getDefaultLLMProviderId();
+    providerId = getDefaultLLMProviderId() as ProviderId | undefined;
     modelId = providerId ? getDefaultLLMModelId(providerId) : undefined;
   }
 
