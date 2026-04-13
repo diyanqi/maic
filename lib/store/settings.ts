@@ -900,9 +900,14 @@ export const useSettingsStore = create<SettingsState>()(
                 const key = pid as ProviderId;
                 if (newProvidersConfig[key]) {
                   const currentModels = newProvidersConfig[key].models;
-                  // When server specifies allowed models, filter the models list
+                  // When server specifies allowed models, keep that order.
+                  // If a server model is not in built-in registry, keep it as-is
+                  // so deployment-specific model IDs (e.g. vendor gateways) still work.
                   const filteredModels = info.models?.length
-                    ? currentModels.filter((m) => info.models!.includes(m.id))
+                    ? info.models.map((modelId) => {
+                        const existing = currentModels.find((m) => m.id === modelId);
+                        return existing || { id: modelId, name: modelId };
+                      })
                     : currentModels;
                   newProvidersConfig[key] = {
                     ...newProvidersConfig[key],
@@ -1117,11 +1122,11 @@ export const useSettingsStore = create<SettingsState>()(
                 if (models?.length) recoveredVideoModel = models[0].id;
               }
 
+              const llmModels = validLLMProvider
+                ? newProvidersConfig[validLLMProvider as ProviderId]?.models ?? []
+                : [];
               const validLLMModel = validLLMProvider
-                ? validateModel(
-                    state.modelId,
-                    newProvidersConfig[validLLMProvider as ProviderId]?.models ?? [],
-                  )
+                ? validateModel(state.modelId, llmModels) || llmModels[0]?.id || ''
                 : '';
               const imageModels =
                 IMAGE_PROVIDERS[validImageProvider as ImageProviderId]?.models ?? [];
