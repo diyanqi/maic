@@ -138,13 +138,72 @@
  */
 
 import { extractText, getDocumentProxy, extractImages } from 'unpdf';
-import sharp from 'sharp';
+import { PNG } from 'pngjs';
 import type { PDFParserConfig } from './types';
 import type { ParsedPdfContent } from '@/lib/types/pdf';
 import { PDF_PROVIDERS } from './constants';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('PDFProviders');
+
+function rawImageToPngBuffer(
+  data: Uint8Array | Uint8ClampedArray,
+  width: number,
+  height: number,
+  channels: number,
+): Buffer {
+  const png = new PNG({ width, height });
+  const src = data;
+  const dst = png.data;
+  const pixelCount = width * height;
+
+  if (channels === 4) {
+    for (let i = 0; i < pixelCount; i++) {
+      const srcOffset = i * 4;
+      const dstOffset = i * 4;
+      dst[dstOffset] = src[srcOffset];
+      dst[dstOffset + 1] = src[srcOffset + 1];
+      dst[dstOffset + 2] = src[srcOffset + 2];
+      dst[dstOffset + 3] = src[srcOffset + 3];
+    }
+    return PNG.sync.write(png);
+  }
+
+  for (let i = 0; i < pixelCount; i++) {
+    const srcOffset = i * channels;
+    const dstOffset = i * 4;
+
+    if (channels === 3) {
+      dst[dstOffset] = src[srcOffset];
+      dst[dstOffset + 1] = src[srcOffset + 1];
+      dst[dstOffset + 2] = src[srcOffset + 2];
+      dst[dstOffset + 3] = 255;
+      continue;
+    }
+
+    if (channels === 2) {
+      const gray = src[srcOffset];
+      dst[dstOffset] = gray;
+      dst[dstOffset + 1] = gray;
+      dst[dstOffset + 2] = gray;
+      dst[dstOffset + 3] = src[srcOffset + 1];
+      continue;
+    }
+
+    if (channels === 1) {
+      const gray = src[srcOffset];
+      dst[dstOffset] = gray;
+      dst[dstOffset + 1] = gray;
+      dst[dstOffset + 2] = gray;
+      dst[dstOffset + 3] = 255;
+      continue;
+    }
+
+    throw new Error(`Unsupported image channels: ${channels}`);
+  }
+
+  return PNG.sync.write(png);
+}
 
 /**
  * Parse PDF using specified provider
@@ -218,16 +277,13 @@ async function parseWithUnpdf(pdfBuffer: Buffer): Promise<ParsedPdfContent> {
       for (let i = 0; i < pageImages.length; i++) {
         const imgData = pageImages[i];
         try {
-          // Use sharp to convert raw image data to PNG base64
-          const pngBuffer = await sharp(Buffer.from(imgData.data), {
-            raw: {
-              width: imgData.width,
-              height: imgData.height,
-              channels: imgData.channels,
-            },
-          })
-            .png()
-            .toBuffer();
+          // Convert raw image data to PNG using pure JS encoder.
+          const pngBuffer = rawImageToPngBuffer(
+            imgData.data,
+            imgData.width,
+            imgData.height,
+            imgData.channels,
+          );
 
           // Convert to base64
           const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;

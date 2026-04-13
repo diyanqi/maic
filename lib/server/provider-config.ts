@@ -107,16 +107,18 @@ type YamlData = Partial<{
   'web-search': Record<string, Partial<ServerProviderEntry>>;
 }>;
 
-function loadYamlFile(filename: string): YamlData {
+const SERVER_PROVIDERS_FILE = 'server-providers.yml';
+
+function loadYamlFile(): YamlData {
   try {
-    const filePath = path.join(process.cwd(), filename);
+    const filePath = path.join(process.cwd(), SERVER_PROVIDERS_FILE);
     if (!fs.existsSync(filePath)) return {};
     const raw = fs.readFileSync(filePath, 'utf-8');
     const parsed = yaml.load(raw) as Record<string, unknown> | null;
     if (!parsed || typeof parsed !== 'object') return {};
     return parsed as YamlData;
   } catch (e) {
-    log.warn(`[ServerProviderConfig] Failed to load ${filename}:`, e);
+    log.warn(`[ServerProviderConfig] Failed to load ${SERVER_PROVIDERS_FILE}:`, e);
     return {};
   }
 }
@@ -194,10 +196,7 @@ function loadEnvSection(
 // Module-level cache (process singleton)
 // ---------------------------------------------------------------------------
 
-const DEFAULT_FILENAME = 'server-providers.yml';
-
-/** Cache keyed by YAML filename (empty string = default file). */
-const _configs: Map<string, ServerConfig> = new Map();
+let _config: ServerConfig | null = null;
 
 function buildConfig(yamlData: YamlData): ServerConfig {
   return {
@@ -231,13 +230,12 @@ function logConfig(config: ServerConfig, label: string): void {
 }
 
 function getConfig(): ServerConfig {
-  const cached = _configs.get('');
-  if (cached) return cached;
+  if (_config) return _config;
 
-  const yamlData = loadYamlFile(DEFAULT_FILENAME);
+  const yamlData = loadYamlFile();
   const config = buildConfig(yamlData);
-  logConfig(config, DEFAULT_FILENAME);
-  _configs.set('', config);
+  logConfig(config, SERVER_PROVIDERS_FILE);
+  _config = config;
   return config;
 }
 
