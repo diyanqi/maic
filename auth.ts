@@ -1,6 +1,4 @@
 import NextAuth from 'next-auth';
-import GitHub from 'next-auth/providers/github';
-import Google from 'next-auth/providers/google';
 
 type OAuthProviderMeta = { id: string; name: string };
 
@@ -16,27 +14,7 @@ function buildProviders(): Array<Record<string, unknown>> {
   const enabled = parseCsv(process.env.AUTH_ENABLED_PROVIDERS);
   const providers: Array<Record<string, unknown>> = [];
 
-  const useGithub = enabled.length === 0 ? true : enabled.includes('github');
-  if (useGithub && process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET) {
-    providers.push(
-      GitHub({
-        clientId: process.env.AUTH_GITHUB_ID,
-        clientSecret: process.env.AUTH_GITHUB_SECRET,
-      }),
-    );
-  }
-
-  const useGoogle = enabled.includes('google');
-  if (useGoogle && process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
-    providers.push(
-      Google({
-        clientId: process.env.AUTH_GOOGLE_ID,
-        clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      }),
-    );
-  }
-
-  const useOidc = enabled.includes('oidc') || enabled.includes('oauth');
+  const useOidc = enabled.length === 0 ? true : enabled.includes('oidc') || enabled.includes('oauth');
   if (
     useOidc &&
     process.env.AUTH_OIDC_ISSUER &&
