@@ -115,15 +115,15 @@ vi.mock('@/lib/pdf/constants', () => ({
 
 vi.mock('@/lib/media/image-providers', () => ({
   IMAGE_PROVIDERS: {
-    seedream: {
-      id: 'seedream',
+    'nvidia-flux': {
+      id: 'nvidia-flux',
       requiresApiKey: true,
-      models: [{ id: 'doubao-seedream-5-0-260128', name: 'Seedream 5.0' }],
-    },
-    'qwen-image': {
-      id: 'qwen-image',
-      requiresApiKey: true,
-      models: [{ id: 'qwen-image-max', name: 'Qwen Image Max' }],
+      models: [
+        {
+          id: 'black-forest-labs/flux.2-klein-4b',
+          name: 'NVIDIA FLUX.2 Klein 4B',
+        },
+      ],
     },
   },
 }));
@@ -592,10 +592,10 @@ describe('fetchServerProviders — Image stale selection', () => {
   it('clears imageProviderId and imageModelId when provider loses server config', async () => {
     const store = await getStore();
 
-    mockServerResponse({ image: { seedream: {} } });
+    mockServerResponse({ image: { 'nvidia-flux': {} } });
     await store.getState().fetchServerProviders();
-    store.getState().setImageProvider('seedream');
-    store.getState().setImageModelId('doubao-seedream-5-0-260128');
+    store.getState().setImageProvider('nvidia-flux');
+    store.getState().setImageModelId('black-forest-labs/flux.2-klein-4b');
 
     mockServerResponse({});
     await store.getState().fetchServerProviders();
@@ -607,10 +607,10 @@ describe('fetchServerProviders — Image stale selection', () => {
   it('disables imageGenerationEnabled when no image provider is usable', async () => {
     const store = await getStore();
 
-    // Server configures seedream, user enables image generation
-    mockServerResponse({ image: { seedream: {} } });
+    // Server configures nvidia-flux, user enables image generation
+    mockServerResponse({ image: { 'nvidia-flux': {} } });
     await store.getState().fetchServerProviders();
-    store.getState().setImageProvider('seedream');
+    store.getState().setImageProvider('nvidia-flux');
     store.getState().setImageGenerationEnabled(true);
     expect(store.getState().imageGenerationEnabled).toBe(true);
 
@@ -636,8 +636,8 @@ describe('fetchServerProviders — Image stale selection', () => {
   it('preserves user-disabled image generation across server syncs', async () => {
     const store = await getStore();
 
-    // Server has seedream, auto-enabled on first sync
-    mockServerResponse({ image: { seedream: {} } });
+    // Server has nvidia-flux, auto-enabled on first sync
+    mockServerResponse({ image: { 'nvidia-flux': {} } });
     await store.getState().fetchServerProviders();
     expect(store.getState().imageGenerationEnabled).toBe(true);
 
@@ -646,24 +646,9 @@ describe('fetchServerProviders — Image stale selection', () => {
     expect(store.getState().imageGenerationEnabled).toBe(false);
 
     // Next server sync — same config, should NOT re-enable
-    mockServerResponse({ image: { seedream: {} } });
+    mockServerResponse({ image: { 'nvidia-flux': {} } });
     await store.getState().fetchServerProviders();
     expect(store.getState().imageGenerationEnabled).toBe(false);
-  });
-
-  it('falls back to another server-configured image provider', async () => {
-    const store = await getStore();
-
-    mockServerResponse({ image: { seedream: {}, 'qwen-image': {} } });
-    await store.getState().fetchServerProviders();
-    store.getState().setImageProvider('seedream');
-    store.getState().setImageModelId('doubao-seedream-5-0-260128');
-
-    mockServerResponse({ image: { 'qwen-image': {} } });
-    await store.getState().fetchServerProviders();
-
-    expect(store.getState().imageProviderId).toBe('qwen-image');
-    expect(store.getState().imageModelId).toBe('qwen-image-max');
   });
 
   it('auto-selects provider and model when server adds image provider after empty state', async () => {
@@ -676,12 +661,12 @@ describe('fetchServerProviders — Image stale selection', () => {
     expect(store.getState().imageModelId).toBe('');
     expect(store.getState().imageGenerationEnabled).toBe(false);
 
-    // Server adds seedream
-    mockServerResponse({ image: { seedream: {} } });
+    // Server adds nvidia-flux
+    mockServerResponse({ image: { 'nvidia-flux': {} } });
     await store.getState().fetchServerProviders();
 
-    expect(store.getState().imageProviderId).toBe('seedream');
-    expect(store.getState().imageModelId).toBe('doubao-seedream-5-0-260128');
+    expect(store.getState().imageProviderId).toBe('nvidia-flux');
+    expect(store.getState().imageModelId).toBe('black-forest-labs/flux.2-klein-4b');
     // Provider recovered but generation stays off — user enables manually
     expect(store.getState().imageGenerationEnabled).toBe(false);
   });
@@ -689,14 +674,14 @@ describe('fetchServerProviders — Image stale selection', () => {
   it('auto-enables image generation on first load when server has image provider', async () => {
     const store = await getStore();
 
-    // First ever fetchServerProviders — server has seedream
-    // Default state: imageProviderId='seedream', imageGenerationEnabled=false, autoConfigApplied=false
-    mockServerResponse({ image: { seedream: {} } });
+    // First ever fetchServerProviders — server has nvidia-flux
+    // Default state: imageProviderId='nvidia-flux', imageGenerationEnabled=false, autoConfigApplied=false
+    mockServerResponse({ image: { 'nvidia-flux': {} } });
     await store.getState().fetchServerProviders();
 
     expect(store.getState().imageGenerationEnabled).toBe(true);
-    expect(store.getState().imageProviderId).toBe('seedream');
-    expect(store.getState().imageModelId).toBe('doubao-seedream-5-0-260128');
+    expect(store.getState().imageProviderId).toBe('nvidia-flux');
+    expect(store.getState().imageModelId).toBe('black-forest-labs/flux.2-klein-4b');
   });
 
   it('does not force-enable when provider is already set but generation was disabled', async () => {
@@ -707,18 +692,18 @@ describe('fetchServerProviders — Image stale selection', () => {
     await store.getState().fetchServerProviders(); // sets autoConfigApplied=true
 
     store.setState({
-      imageProviderId: 'seedream',
+      imageProviderId: 'nvidia-flux',
       imageModelId: '',
       imageGenerationEnabled: false,
     });
 
-    // Server has seedream — should NOT force-enable (provider was already set)
-    mockServerResponse({ image: { seedream: {} } });
+    // Server has nvidia-flux — should NOT force-enable (provider was already set)
+    mockServerResponse({ image: { 'nvidia-flux': {} } });
     await store.getState().fetchServerProviders();
 
     expect(store.getState().imageGenerationEnabled).toBe(false);
     // But model should be auto-filled
-    expect(store.getState().imageModelId).toBe('doubao-seedream-5-0-260128');
+    expect(store.getState().imageModelId).toBe('black-forest-labs/flux.2-klein-4b');
   });
 });
 

@@ -5,9 +5,7 @@
  * with extensible architecture to support multiple providers.
  *
  * Currently Supported Image Providers:
- * - Seedream (ByteDance SDXL-based image generation)
- * - Qwen Image (Alibaba Cloud Wanx image generation)
- * - Nano Banana (Lightweight image generation via Banana.dev)
+ * - NVIDIA FLUX.2 Klein 4B
  *
  * Currently Supported Video Providers (Phase 2):
  * - Seedance (ByteDance video generation)
@@ -70,11 +68,7 @@
  * Keep in sync with IMAGE_PROVIDERS registry in constants.ts
  */
 export type ImageProviderId =
-  | 'seedream'
-  | 'qwen-image'
-  | 'nano-banana'
-  | 'minimax-image'
-  | 'grok-image';
+  | 'nvidia-flux';
 // Add new image providers below (uncomment and modify):
 // | 'dall-e'
 // | 'midjourney'

@@ -1,4 +1,6 @@
 import NextAuth from 'next-auth';
+import type { NextAuthConfig } from 'next-auth';
+import OIDC from 'next-auth/providers/oidc';
 
 type OAuthProviderMeta = { id: string; name: string };
 
@@ -10,9 +12,9 @@ function parseCsv(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function buildProviders(): Array<Record<string, unknown>> {
+function buildProviders(): NonNullable<NextAuthConfig['providers']> {
   const enabled = parseCsv(process.env.AUTH_ENABLED_PROVIDERS);
-  const providers: Array<Record<string, unknown>> = [];
+  const providers: NonNullable<NextAuthConfig['providers']> = [];
 
   const useOidc = enabled.length === 0 ? true : enabled.includes('oidc') || enabled.includes('oauth');
   if (
@@ -21,15 +23,16 @@ function buildProviders(): Array<Record<string, unknown>> {
     process.env.AUTH_OIDC_CLIENT_ID &&
     process.env.AUTH_OIDC_CLIENT_SECRET
   ) {
-    providers.push({
-      id: process.env.AUTH_OIDC_ID || 'oidc',
-      name: process.env.AUTH_OIDC_NAME || 'OAuth',
-      type: 'oidc',
-      issuer: process.env.AUTH_OIDC_ISSUER,
-      clientId: process.env.AUTH_OIDC_CLIENT_ID,
-      clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET,
-      checks: ['pkce', 'state'],
-    });
+    providers.push(
+      OIDC({
+        id: process.env.AUTH_OIDC_ID || 'oidc',
+        name: process.env.AUTH_OIDC_NAME || 'OAuth',
+        issuer: process.env.AUTH_OIDC_ISSUER,
+        clientId: process.env.AUTH_OIDC_CLIENT_ID,
+        clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET,
+        checks: ['pkce', 'state'],
+      }),
+    );
   }
 
   return providers;
@@ -40,13 +43,13 @@ const providers = buildProviders();
 export function getOAuthProviderMetadata(): OAuthProviderMeta[] {
   return providers
     .map((provider) => ({
-      id: (provider as { id?: string }).id || '',
-      name: (provider as { name?: string }).name || '',
+      id: provider.id,
+      name: provider.name,
     }))
     .filter((provider) => provider.id && provider.name);
 }
 
-const authConfig = {
+const authConfig: NextAuthConfig = {
   providers,
   pages: {
     signIn: '/login',

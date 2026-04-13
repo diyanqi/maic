@@ -165,19 +165,11 @@ function getASRProviderName(providerId: ASRProviderId, t: (key: string) => strin
 
 // ─── Image/Video provider name helpers ───
 const IMAGE_PROVIDER_NAMES: Record<ImageProviderId, string> = {
-  seedream: 'providerSeedream',
-  'qwen-image': 'providerQwenImage',
-  'nano-banana': 'providerNanoBanana',
-  'minimax-image': 'providerMiniMaxImage',
-  'grok-image': 'providerGrokImage',
+  'nvidia-flux': 'providerNvidiaImage',
 };
 
 const IMAGE_PROVIDER_ICONS: Record<ImageProviderId, string> = {
-  seedream: '/logos/doubao.svg',
-  'qwen-image': '/logos/bailian.svg',
-  'nano-banana': '/logos/gemini.svg',
-  'minimax-image': '/logos/minimax.svg',
-  'grok-image': '/logos/grok.svg',
+  'nvidia-flux': '/logos/browser.svg',
 };
 
 const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {

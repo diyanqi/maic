@@ -5,11 +5,7 @@
  *
  * POST /api/verify-image-provider
  *
- * Headers:
- *   x-image-provider: ImageProviderId
- *   x-image-model: string (optional)
- *   x-api-key: string (optional, server fallback)
- *   x-base-url: string (optional, server fallback)
+ * Provider and credentials are resolved from server-side env/YAML config.
  *
  * Response: { success: boolean, message: string }
  */
@@ -30,7 +26,8 @@ const log = createLogger('VerifyImageProvider');
 export async function POST(request: NextRequest) {
   try {
     const providerId =
-      (getDefaultImageProviderId() as ImageProviderId | undefined) || ('seedream' as ImageProviderId);
+      (getDefaultImageProviderId() as ImageProviderId | undefined) ||
+      ('nvidia-flux' as ImageProviderId);
     const apiKey = resolveImageApiKey(providerId);
     const baseUrl = resolveImageBaseUrl(providerId);
 
@@ -51,7 +48,7 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ message: result.message });
   } catch (err) {
     log.error(
-      `Image provider verification failed [provider=${request.headers.get('x-image-provider') ?? 'seedream'}]:`,
+      `Image provider verification failed [provider=${request.headers.get('x-image-provider') ?? 'nvidia-flux'}]:`,
       err,
     );
     return apiError('INTERNAL_ERROR', 500, `Connectivity test error: ${err}`);

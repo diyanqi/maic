@@ -45,10 +45,7 @@ interface MediaPopoverProps {
 
 // ─── Provider icon maps ───
 const IMAGE_PROVIDER_ICONS: Record<string, string> = {
-  seedream: '/logos/doubao.svg',
-  'qwen-image': '/logos/bailian.svg',
-  'nano-banana': '/logos/gemini.svg',
-  'grok-image': '/logos/grok.svg',
+  'nvidia-flux': '/logos/browser.svg',
 };
 const VIDEO_PROVIDER_ICONS: Record<string, string> = {
   seedance: '/logos/doubao.svg',

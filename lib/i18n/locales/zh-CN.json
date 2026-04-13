@@ -815,6 +815,7 @@
     "providerNanoBanana": "Nano Banana（Gemini）",
     "providerMiniMaxImage": "MiniMax 图像",
     "providerGrokImage": "Grok Image（xAI）",
+    "providerNvidiaImage": "NVIDIA FLUX.2 Klein 4B",
     "testImageGeneration": "测试图像生成",
     "testImageConnectivity": "测试连接",
     "imageConnectivitySuccess": "图像服务连接成功",
