@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import NextAuth from 'next-auth';
+import authConfig from '@/auth.config';
+
+const { auth } = NextAuth(authConfig);
 
 const CDN_ORIGIN = 'https://maic.amzcd.top';
 const CDN_HOST = 'maic.amzcd.top';
@@ -22,7 +25,15 @@ export default auth((request) => {
     return NextResponse.redirect(`${CDN_ORIGIN}${pathname}${search}`, 307);
   }
 
-  if (pathname === '/login' || pathname === '/api/health' || pathname.startsWith('/api/auth/')) {
+  if (pathname.startsWith('/_next/') || pathname === '/favicon.ico') {
+    return NextResponse.next();
+  }
+
+  if (
+    pathname === '/login' ||
+    pathname === '/api/health' ||
+    pathname.startsWith('/api/auth/')
+  ) {
     return NextResponse.next();
   }
 

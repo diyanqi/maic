@@ -172,6 +172,69 @@ cp .env.example .env.local
 docker compose up --build
 ```
 
+如果需要 MySQL 持久化，还需要在 `.env.local` 增加：
+
+```env
+AUTH_URL=http://localhost:3000
+AUTH_TRUST_HOST=true
+DATABASE_URL=mysql://openmaic:openmaic@mysql:3306/openmaic
+MYSQL_ROOT_PASSWORD=root
+MYSQL_DATABASE=openmaic
+MYSQL_USER=openmaic
+MYSQL_PASSWORD=openmaic
+```
+
+首次登录前请先建表：
+
+```bash
+pnpm prisma:generate
+pnpm prisma:migrate:deploy
+```
+
+若你希望全程用 Docker，可以先只启动 MySQL，然后在宿主机执行迁移：
+
+```bash
+docker compose up -d mysql
+DATABASE_URL=mysql://openmaic:openmaic@127.0.0.1:3306/openmaic pnpm prisma:migrate:deploy
+docker compose up --build -d openmaic
+```
+
+### 推送到 Docker Hub
+
+```bash
+# 替换为你的 Docker Hub 用户名
+export DOCKERHUB_NAMESPACE=<your-dockerhub-username>
+export IMAGE_NAME=openmaic
+export IMAGE_TAG=latest
+
+docker build -t $DOCKERHUB_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG .
+docker push $DOCKERHUB_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG
+```
+
+### 部署到 Claw Cloud Run
+
+1. 在 Claw Cloud 中准备 MySQL 实例，拿到连接串：
+  `mysql://<user>:<password>@<host>:<port>/<database>`
+2. 先对生产库执行一次迁移：
+
+```bash
+DATABASE_URL='mysql://<user>:<password>@<host>:<port>/<database>' pnpm prisma:migrate:deploy
+```
+
+3. 在 Claw Cloud Run 创建服务，镜像填：
+  `<your-dockerhub-username>/openmaic:latest`
+4. 在 Claw Cloud Run 配置环境变量：
+  - `NODE_ENV=production`
+  - `AUTH_SECRET=<高强度随机字符串>`
+  - `AUTH_ENABLED_PROVIDERS=oidc`
+  - `AUTH_URL=https://<你的服务域名>`
+  - `AUTH_TRUST_HOST=true`
+  - `DATABASE_URL=mysql://<user>:<password>@<host>:<port>/<database>`
+  - 以及你的模型服务商 Key，例如 `OPENAI_API_KEY`、`GOOGLE_API_KEY`
+5. 端口使用 `3000`（服务监听 `$PORT`，默认 3000），然后部署。
+6. 部署后用健康检查确认：
+  `https://<你的服务域名>/api/health`
+
 ### 可选：MinerU（增强文档解析）
 
 [MinerU](https://github.com/opendatalab/MinerU) 提供更强的表格、公式和 OCR 解析能力。你可以使用 [MinerU 官方 API](https://mineru.net/) 或[自行部署](https://opendatalab.github.io/MinerU/quick_start/docker_deployment/)。

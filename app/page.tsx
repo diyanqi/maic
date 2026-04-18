@@ -19,7 +19,10 @@ import {
   BotOff,
   ChevronUp,
   Upload,
+  LogOut,
+  UserCircle2,
 } from 'lucide-react';
+import { getSession, signOut } from 'next-auth/react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { createLogger } from '@/lib/logger';
@@ -118,6 +121,12 @@ function HomePage() {
   }
 
   const [themeOpen, setThemeOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [authUser, setAuthUser] = useState<{
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [classrooms, setClassrooms] = useState<StageListItem[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
@@ -127,15 +136,32 @@ function HomePage() {
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    if (!themeOpen) return;
+    if (!themeOpen && !userMenuOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
         setThemeOpen(false);
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [themeOpen]);
+  }, [themeOpen, userMenuOpen]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSession()
+      .then((session) => {
+        if (cancelled) return;
+        setAuthUser(session?.user ?? null);
+      })
+      .catch((err) => {
+        log.error('Failed to load auth session:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadClassrooms = async () => {
     try {
@@ -290,6 +316,15 @@ function HomePage() {
     }
   };
 
+  const handleLogout = async () => {
+    const callbackUrl = encodeURIComponent(
+      `${window.location.pathname}${window.location.search || ''}` || '/',
+    );
+    await signOut({
+      redirectTo: `/login?loggedOut=1&callbackUrl=${callbackUrl}`,
+    });
+  };
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -327,6 +362,54 @@ function HomePage() {
       >
         {/* Language Selector */}
         <LanguageSwitcher onOpen={() => setThemeOpen(false)} />
+
+        <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
+
+        <div className="relative">
+          <button
+            onClick={() => {
+              setUserMenuOpen((prev) => !prev);
+              setThemeOpen(false);
+            }}
+            className="h-8 rounded-full px-2.5 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all flex items-center gap-2"
+          >
+            {authUser?.image ? (
+              <img
+                src={authUser.image}
+                alt={authUser.name || authUser.email || 'user'}
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            ) : (
+              <UserCircle2 className="w-4 h-4" />
+            )}
+            <span className="text-xs font-medium max-w-[120px] truncate">
+              {authUser?.name || authUser?.email || t('common.user')}
+            </span>
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+
+          {userMenuOpen && (
+            <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[220px]">
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.currentUser')}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {authUser?.name || t('common.user')}
+                </p>
+                {authUser?.email && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{authUser.email}</p>
+                )}
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full px-3 py-2.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2.5 text-red-600 dark:text-red-400"
+              >
+                <LogOut className="w-4 h-4" />
+                {t('common.logout')}
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
 

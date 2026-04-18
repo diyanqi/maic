@@ -1,6 +1,10 @@
 {
   "common": {
     "you": "你",
+    "login": "登录",
+    "logout": "登出",
+    "user": "用户",
+    "currentUser": "当前登录用户",
     "confirm": "确定",
     "cancel": "取消",
     "loading": "加载中..."

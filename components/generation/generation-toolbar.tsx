@@ -83,11 +83,12 @@ export function GenerationToolbar({
           <div className={cn(pillMuted, 'cursor-default')}>
             <Bot className="size-3.5" />
             <span className="max-w-[220px] truncate">
-              {(currentProviderConfig?.name || currentProviderId) + ' / ' + currentModelId}
+              {/* {(currentProviderConfig?.name || currentProviderId) + ' / ' + currentModelId} */}
+              {"智能模型"}
             </span>
           </div>
         </TooltipTrigger>
-        <TooltipContent>{t('toolbar.configureProviderHint')}</TooltipContent>
+        {/* <TooltipContent>{t('toolbar.configureProviderHint')}</TooltipContent> */}
       </Tooltip>
 
       {/* ── Separator ── */}

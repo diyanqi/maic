@@ -1,6 +1,10 @@
 {
   "common": {
     "you": "あなた",
+    "login": "ログイン",
+    "logout": "ログアウト",
+    "user": "ユーザー",
+    "currentUser": "現在のログインユーザー",
     "confirm": "確認",
     "cancel": "キャンセル",
     "loading": "読み込み中..."

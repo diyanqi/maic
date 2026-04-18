@@ -24,7 +24,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
 COPY . .
 
-RUN pnpm build
+ENV DATABASE_URL=mysql://openmaic:openmaic@mysql:3306/openmaic
+
+RUN pnpm prisma generate && pnpm build
 
 # ---- Stage 4: Runner ----
 FROM node:22-alpine AS runner
@@ -43,6 +45,8 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nextjs
 

@@ -1,9 +1,12 @@
 import { redirect } from 'next/navigation';
-import { auth, signIn } from '@/auth';
+import { auth } from '@/auth';
 import { getOAuthProviderMetadata } from '@/auth';
+import { AutoSignin } from './auto-signin';
 
 interface LoginPageProps {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 }
 
 function normalizeCallbackUrl(value: string | string[] | undefined): string {
@@ -18,8 +21,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     redirect('/');
   }
 
-  const callbackUrl = normalizeCallbackUrl(searchParams?.callbackUrl);
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const callbackUrl = normalizeCallbackUrl(resolvedSearchParams.callbackUrl);
+  const isLoggedOut = resolvedSearchParams.loggedOut === '1';
   const providers = getOAuthProviderMetadata();
+  const defaultProvider = providers[0];
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6 bg-muted/30">
@@ -36,22 +42,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           )}
 
-          {providers.map((provider) => (
-            <form
-              key={provider.id}
-              action={async () => {
-                'use server';
-                await signIn(provider.id, { redirectTo: callbackUrl });
-              }}
-            >
-              <button
-                type="submit"
-                className="w-full h-10 rounded-lg border bg-background hover:bg-muted transition-colors text-sm font-medium"
-              >
-                使用 {provider.name} 登录
-              </button>
-            </form>
-          ))}
+          {defaultProvider && (
+            <AutoSignin
+              providerId={defaultProvider.id}
+              providerName={defaultProvider.name}
+              callbackUrl={callbackUrl}
+              auto={!isLoggedOut}
+            />
+          )}
         </div>
       </div>
     </main>

@@ -46,6 +46,15 @@ vi.mock('@/lib/ai/providers', () => ({
 
 vi.mock('@/lib/audio/constants', () => ({
   TTS_PROVIDERS: {
+    'edge-tts': {
+      id: 'edge-tts',
+      name: 'Edge TTS',
+      requiresApiKey: false,
+      defaultModelId: '',
+      models: [],
+      voices: [{ id: 'zh-CN-XiaoxiaoNeural', name: 'Xiaoxiao', language: 'zh-CN' }],
+      supportedFormats: ['mp3'],
+    },
     'openai-tts': {
       id: 'openai-tts',
       name: 'OpenAI TTS',
@@ -96,6 +105,7 @@ vi.mock('@/lib/audio/constants', () => ({
     },
   },
   DEFAULT_TTS_VOICES: {
+    'edge-tts': 'zh-CN-XiaoxiaoNeural',
     'openai-tts': 'alloy',
     'browser-native-tts': 'default',
   },
@@ -470,7 +480,7 @@ describe('fetchServerProviders — TTS stale selection', () => {
     return useSettingsStore;
   }
 
-  it('falls back to browser-native-tts when selected TTS provider loses server config', async () => {
+  it('falls back to edge-tts when selected TTS provider loses server config', async () => {
     const store = await getStore();
 
     mockServerResponse({ tts: { 'openai-tts': {} } });
@@ -481,10 +491,10 @@ describe('fetchServerProviders — TTS stale selection', () => {
     mockServerResponse({});
     await store.getState().fetchServerProviders();
 
-    expect(store.getState().ttsProviderId).toBe('browser-native-tts');
+    expect(store.getState().ttsProviderId).toBe('edge-tts');
   });
 
-  it('falls back to remaining server TTS provider when selected one is removed', async () => {
+  it('prefers edge-tts fallback when selected server TTS provider is removed', async () => {
     const store = await getStore();
 
     mockServerResponse({ tts: { 'openai-tts': {}, 'azure-tts': {} } });
@@ -494,7 +504,7 @@ describe('fetchServerProviders — TTS stale selection', () => {
     mockServerResponse({ tts: { 'azure-tts': {} } });
     await store.getState().fetchServerProviders();
 
-    expect(store.getState().ttsProviderId).toBe('azure-tts');
+    expect(store.getState().ttsProviderId).toBe('edge-tts');
   });
 
   it('keeps TTS provider when it is still server-configured', async () => {

@@ -1,6 +1,10 @@
 {
   "common": {
     "you": "You",
+    "login": "Login",
+    "logout": "Logout",
+    "user": "User",
+    "currentUser": "Current User",
     "confirm": "Confirm",
     "cancel": "Cancel",
     "loading": "Loading..."

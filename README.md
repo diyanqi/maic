@@ -172,6 +172,69 @@ cp .env.example .env.local
 docker compose up --build
 ```
 
+For MySQL persistence, also set these variables in `.env.local`:
+
+```env
+AUTH_URL=http://localhost:3000
+AUTH_TRUST_HOST=true
+DATABASE_URL=mysql://openmaic:openmaic@mysql:3306/openmaic
+MYSQL_ROOT_PASSWORD=root
+MYSQL_DATABASE=openmaic
+MYSQL_USER=openmaic
+MYSQL_PASSWORD=openmaic
+```
+
+Create database tables before first login:
+
+```bash
+pnpm prisma:generate
+pnpm prisma:migrate:deploy
+```
+
+If you run fully inside Docker, start only MySQL first and run migration from host:
+
+```bash
+docker compose up -d mysql
+DATABASE_URL=mysql://openmaic:openmaic@127.0.0.1:3306/openmaic pnpm prisma:migrate:deploy
+docker compose up --build -d openmaic
+```
+
+### Docker Hub Push
+
+```bash
+# replace with your Docker Hub username
+export DOCKERHUB_NAMESPACE=<your-dockerhub-username>
+export IMAGE_NAME=openmaic
+export IMAGE_TAG=latest
+
+docker build -t $DOCKERHUB_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG .
+docker push $DOCKERHUB_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG
+```
+
+### Claw Cloud Run Deployment
+
+1. Prepare a MySQL instance in Claw Cloud and get a connection URL:
+  `mysql://<user>:<password>@<host>:<port>/<database>`
+2. Run migration once against that production database:
+
+```bash
+DATABASE_URL='mysql://<user>:<password>@<host>:<port>/<database>' pnpm prisma:migrate:deploy
+```
+
+3. In Claw Cloud Run, create a service from your Docker Hub image:
+  `<your-dockerhub-username>/openmaic:latest`
+4. Set environment variables in Claw Cloud Run:
+  - `NODE_ENV=production`
+  - `AUTH_SECRET=<strong-random-secret>`
+  - `AUTH_ENABLED_PROVIDERS=oidc`
+  - `AUTH_URL=https://<your-service-domain>`
+  - `AUTH_TRUST_HOST=true`
+  - `DATABASE_URL=mysql://<user>:<password>@<host>:<port>/<database>`
+  - Your provider keys such as `OPENAI_API_KEY` / `GOOGLE_API_KEY`
+5. Expose port `3000` (the service listens on `$PORT`, default 3000) and deploy.
+6. Verify health endpoint:
+  `https://<your-service-domain>/api/health`
+
 ### Optional: MinerU (Advanced Document Parsing)
 
 [MinerU](https://github.com/opendatalab/MinerU) provides enhanced parsing for complex tables, formulas, and OCR. You can use the [MinerU official API](https://mineru.net/) or [self-host your own instance](https://opendatalab.github.io/MinerU/quick_start/docker_deployment/).

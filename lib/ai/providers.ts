@@ -1074,7 +1074,12 @@ export interface ModelWithInfo {
 function getCompatThinkingBodyParams(
   providerId: ProviderId,
   config: ThinkingConfig,
+  requestHost?: string,
 ): Record<string, unknown> | undefined {
+  if (requestHost && /(^|\.)groq\.com$/i.test(requestHost)) {
+    return undefined;
+  }
+
   if (config.enabled === false) {
     switch (providerId) {
       // Kimi / DeepSeek / GLM use { thinking: { type: "disabled" } }
@@ -1183,7 +1188,20 @@ export function getModel(config: ModelConfig): ModelWithInfo {
             | undefined;
           const thinking = thinkingCtx?.getStore?.() as ThinkingConfig | undefined;
           if (thinking && init?.body && typeof init.body === 'string') {
-            const extra = getCompatThinkingBodyParams(providerId, thinking);
+            let requestHost: string | undefined;
+            try {
+              if (typeof url === 'string') {
+                requestHost = new URL(url).hostname;
+              } else if (url instanceof URL) {
+                requestHost = url.hostname;
+              } else {
+                requestHost = new URL(url.url).hostname;
+              }
+            } catch {
+              requestHost = undefined;
+            }
+
+            const extra = getCompatThinkingBodyParams(providerId, thinking, requestHost);
             if (extra) {
               try {
                 const body = JSON.parse(init.body);

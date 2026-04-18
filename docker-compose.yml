@@ -1,10 +1,36 @@
 services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-openmaic}
+      MYSQL_USER: ${MYSQL_USER:-openmaic}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-openmaic}
+    command:
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - mysql-data:/var/lib/mysql
+
   openmaic:
     build: .
     ports:
       - "3000:3000"
     env_file:
       - .env.local
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-mysql://openmaic:openmaic@mysql:3306/openmaic}
+    depends_on:
+      mysql:
+        condition: service_healthy
     volumes:
       # Optional: mount server-providers.yml for provider config
       # - ./server-providers.yml:/app/server-providers.yml:ro
@@ -12,4 +38,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  mysql-data:
   openmaic-data:
