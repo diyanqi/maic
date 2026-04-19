@@ -94,7 +94,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
             voiceId: providers[0].voices[0]?.id ?? 'default',
           };
         }
-        return { providerId: 'browser-native-tts', voiceId: 'default' };
+        return { providerId: 'edge-tts', voiceId: 'zh-CN-XiaoxiaoNeural' };
       }
       const agent = agents.find((a) => a.id === agentId);
       if (!agent) {
@@ -105,7 +105,11 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
             modelId: undefined,
           };
         }
-        return { providerId: 'browser-native-tts', voiceId: 'default', modelId: undefined };
+        return {
+          providerId: 'edge-tts',
+          voiceId: 'zh-CN-XiaoxiaoNeural',
+          modelId: undefined,
+        };
       }
       // Teacher: always use global lecture voice (single source of truth with settings)
       if (agent.role === 'teacher') {

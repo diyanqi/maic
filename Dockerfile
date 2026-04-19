@@ -26,7 +26,7 @@ COPY . .
 
 ENV DATABASE_URL=mysql://openmaic:openmaic@mysql:3306/openmaic
 
-RUN pnpm prisma generate && pnpm build
+RUN pnpm prisma generate && NODE_OPTIONS="--max-old-space-size=4096" pnpm build
 
 # ---- Stage 4: Runner ----
 FROM node:22-alpine AS runner
@@ -45,11 +45,15 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/docker/entrypoint.sh ./docker/entrypoint.sh
+
+RUN chmod +x ./docker/entrypoint.sh
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["./docker/entrypoint.sh"]

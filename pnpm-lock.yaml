@@ -28,7 +28,7 @@ importers:
         version: 1.2.0(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@copilotkit/backend':
         specifier: ^0.37.0
-        version: 0.37.0(axios@1.13.6)(ignore@5.3.2)(lodash@4.17.23)(mysql2@3.15.3)(playwright@1.58.2)(ws@8.19.0)
+        version: 0.37.0(@planetscale/database@1.20.1)(axios@1.13.6)(ignore@5.3.2)(lodash@4.17.23)(mysql2@3.15.3)(playwright@1.58.2)(ws@8.19.0)
       '@copilotkit/runtime':
         specifier: ^1.51.2
         version: 1.53.0(@ag-ui/encoder@0.0.47)(@cfworker/json-schema@4.1.1)(@copilotkitnext/shared@1.53.0)(@langchain/core@1.1.31(@opentelemetry/api@1.9.0)(openai@4.104.0(ws@8.19.0)(zod@4.3.6)))(@langchain/langgraph-sdk@1.7.1(@langchain/core@1.1.31(@opentelemetry/api@1.9.0)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))))(@opentelemetry/api@1.9.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(ws@8.19.0)
@@ -47,6 +47,15 @@ importers:
       '@napi-rs/canvas':
         specifier: ^0.1.88
         version: 0.1.96
+      '@planetscale/database':
+        specifier: ^1.20.1
+        version: 1.20.1
+      '@prisma/adapter-mariadb':
+        specifier: ^7.7.0
+        version: 7.7.0
+      '@prisma/adapter-planetscale':
+        specifier: ^7.7.0
+        version: 7.7.0
       '@prisma/client':
         specifier: ^7.7.0
         version: 7.7.0(prisma@7.7.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3))(typescript@5.9.3)
@@ -134,6 +143,9 @@ importers:
       lucide-react:
         specifier: ^0.562.0
         version: 0.562.0(react@19.2.5)
+      mariadb:
+        specifier: ^3.5.2
+        version: 3.5.2
       mathml2omml:
         specifier: workspace:*
         version: link:packages/mathml2omml
@@ -2056,10 +2068,20 @@ packages:
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
 
+  '@planetscale/database@1.20.1':
+    resolution: {integrity: sha512-DeMEVtQXwyYQDEztj3iuwJ7IdIqYgd68m26gsXpkRJ7rJd0V9Q0cSzQQ32ziwK04nFXuOfu1/RKAXwq6arIZZA==}
+    engines: {node: '>=16'}
+
   '@playwright/test@1.58.2':
     resolution: {integrity: sha512-akea+6bHYBBfA9uQqSYmlJXn61cTa+jbO87xVLCWbTqbWadRVmhxlXATaOjOgcBaWU4ePo0wB41KMFv3o35IXA==}
     engines: {node: '>=18'}
     hasBin: true
+
+  '@prisma/adapter-mariadb@7.7.0':
+    resolution: {integrity: sha512-BlugprCUNFGelP7t0uQEHkC5ZcNmgUxWi6xpkjWKUS9gESGBDF3mNdYFqRc2zS9w7pC83gpNxSY51A7gCY2HdA==}
+
+  '@prisma/adapter-planetscale@7.7.0':
+    resolution: {integrity: sha512-FkPZ6Oyq7q+qmaU/8gG4nuCuDD8YhtjyEBDIa3hDEVDsRLqxMDyNme6cWRul8RM9BF35J5LfsDi8Sq9LlCbn6w==}
 
   '@prisma/client-runtime-utils@7.7.0':
     resolution: {integrity: sha512-BLyd0UpFYOtyJFTHm7jS9vesHW7P83abibodQMiIofqjBKzDHQ1VAsQkdfvXyYDkPlONPfOTz7/rv3x/+CQqvQ==}
@@ -2087,6 +2109,9 @@ packages:
 
   '@prisma/dev@0.24.3':
     resolution: {integrity: sha512-ffHlQuKXZiaDt9Go0OnCTdJZrHxK0k7omJKNV86/VjpsXu5EIHZLK0T7JSWgvNlJwh56kW9JFu9v0qJciFzepg==}
+
+  '@prisma/driver-adapter-utils@7.7.0':
+    resolution: {integrity: sha512-gZXREeu6mOk7zXfGFJgh86p7Vhj0sXNKp+4Cg1tWYo7V2dfncP2qxS2BiTmbIIha8xPqItkl0WSw38RuSq1HoQ==}
 
   '@prisma/engines-version@7.6.0-1.75cbdc1eb7150937890ad5465d861175c6624711':
     resolution: {integrity: sha512-r51DLcJ8bDRSrBEJF3J4cinoWyGA7rfP2mG6lD90VqIbGNOkbfcLcXalSVjq5Y6brQS3vcjrq4GbyUb1Cb7vkw==}
@@ -3339,6 +3364,9 @@ packages:
   '@types/file-saver@2.0.7':
     resolution: {integrity: sha512-dNKVfHd/jk0SkR/exKGj2ggkB45MAkzvWCaqLUUgkyjITkGNzH8H+yUwr+BLJUBjZOe9w8X3wgmXhZDRg1ED6A==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/graceful-fs@4.1.9':
     resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
 
@@ -3386,6 +3414,9 @@ packages:
 
   '@types/node@22.19.15':
     resolution: {integrity: sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg==}
+
+  '@types/node@24.12.2':
+    resolution: {integrity: sha512-A1sre26ke7HDIuY/M23nd9gfB+nrmhtYyMINbjI1zHJxYteKR6qSMX56FsmjMcDb3SMcjJg5BiRRgOCC/yBD0g==}
 
   '@types/pngjs@6.0.5':
     resolution: {integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==}
@@ -3894,6 +3925,9 @@ packages:
   async-function@1.0.0:
     resolution: {integrity: sha512-hsU18Ae8CDTR6Kgu9DYf0EbCr/a5iGL0rytQDobUcdpYOKokk8LEjVphnXkDkgpi0wYVsqrXuP0bZxJaTqdgoA==}
     engines: {node: '>= 0.4'}
+
+  async-mutex@0.5.0:
+    resolution: {integrity: sha512-1A94B18jkJ3DYq284ohPxoXbfTA5HsQ7/Mf4DEhcyLx3Bz27Rh59iScbB6EPiP+B+joue6YCxcMXSbFC1tZKwA==}
 
   async-settle@2.0.0:
     resolution: {integrity: sha512-Obu/KE8FurfQRN6ODdHN9LuXqwC+JFIM9NRyZqJJ4ZfLJmIYN9Rg0/kb+wF70VV5+fJusTMQlJ1t5rF7J/ETdg==}
@@ -7019,6 +7053,14 @@ packages:
   map-stream@0.1.0:
     resolution: {integrity: sha512-CkYQrPYZfWnu/DAmVCpTSX/xHpKZ80eKh2lAkyA6AJTef6bW+6JpbQZN5rofum7da+SyN1bi5ctTm+lTfcCW3g==}
 
+  mariadb@3.4.5:
+    resolution: {integrity: sha512-gThTYkhIS5rRqkVr+Y0cIdzr+GRqJ9sA2Q34e0yzmyhMCwyApf3OKAC1jnF23aSlIOqJuyaUFUcj7O1qZslmmQ==}
+    engines: {node: '>= 14'}
+
+  mariadb@3.5.2:
+    resolution: {integrity: sha512-9rztrI4nouxAY/82a+RlzzZ5ie2vxu2eYclkBvTy1ATXH1B9cnvZ0O71Pzsy/mlfDb5P3HhOg0JzQKkDRhctyA==}
+    engines: {node: '>= 18'}
+
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
@@ -9115,6 +9157,9 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
+  undici-types@7.16.0:
+    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+
   undici@7.22.0:
     resolution: {integrity: sha512-RqslV2Us5BrllB+JeiZnK4peryVTndy9Dnqq62S3yYRRTj0tFQCwEniUy2167skdGOy3vqRzEvl1Dm4sV2ReDg==}
     engines: {node: '>=20.18.1'}
@@ -10159,14 +10204,14 @@ snapshots:
 
   '@cfworker/json-schema@4.1.1': {}
 
-  '@copilotkit/backend@0.37.0(axios@1.13.6)(ignore@5.3.2)(lodash@4.17.23)(mysql2@3.15.3)(playwright@1.58.2)(ws@8.19.0)':
+  '@copilotkit/backend@0.37.0(@planetscale/database@1.20.1)(axios@1.13.6)(ignore@5.3.2)(lodash@4.17.23)(mysql2@3.15.3)(playwright@1.58.2)(ws@8.19.0)':
     dependencies:
       '@copilotkit/shared': 0.37.0
       '@google/generative-ai': 0.11.5
       '@langchain/core': 0.1.63(openai@4.104.0(ws@8.19.0)(zod@4.3.6))
       '@langchain/openai': 0.0.28(ws@8.19.0)
       js-tiktoken: 1.0.21
-      langchain: 0.1.37(axios@1.13.6)(ignore@5.3.2)(lodash@4.17.23)(mysql2@3.15.3)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))(playwright@1.58.2)(ws@8.19.0)
+      langchain: 0.1.37(@planetscale/database@1.20.1)(axios@1.13.6)(ignore@5.3.2)(lodash@4.17.23)(mysql2@3.15.3)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))(playwright@1.58.2)(ws@8.19.0)
       openai: 4.104.0(ws@8.19.0)(zod@3.25.76)
       zod: 3.25.76
     transitivePeerDependencies:
@@ -11040,7 +11085,7 @@ snapshots:
 
   '@kurkle/color@0.3.4': {}
 
-  '@langchain/community@0.0.57(lodash@4.17.23)(mysql2@3.15.3)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)':
+  '@langchain/community@0.0.57(@planetscale/database@1.20.1)(lodash@4.17.23)(mysql2@3.15.3)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)':
     dependencies:
       '@langchain/core': 0.1.63(openai@4.104.0(ws@8.19.0)(zod@4.3.6))
       '@langchain/openai': 0.0.28(ws@8.19.0)
@@ -11051,6 +11096,7 @@ snapshots:
       zod: 3.25.76
       zod-to-json-schema: 3.25.1(zod@3.25.76)
     optionalDependencies:
+      '@planetscale/database': 1.20.1
       lodash: 4.17.23
       mysql2: 3.15.3
       ws: 8.19.0
@@ -11409,9 +11455,22 @@ snapshots:
 
   '@pinojs/redact@0.4.0': {}
 
+  '@planetscale/database@1.20.1': {}
+
   '@playwright/test@1.58.2':
     dependencies:
       playwright: 1.58.2
+
+  '@prisma/adapter-mariadb@7.7.0':
+    dependencies:
+      '@prisma/driver-adapter-utils': 7.7.0
+      mariadb: 3.4.5
+
+  '@prisma/adapter-planetscale@7.7.0':
+    dependencies:
+      '@planetscale/database': 1.20.1
+      '@prisma/driver-adapter-utils': 7.7.0
+      async-mutex: 0.5.0
 
   '@prisma/client-runtime-utils@7.7.0': {}
 
@@ -11456,6 +11515,10 @@ snapshots:
       zeptomatch: 2.1.0
     transitivePeerDependencies:
       - typescript
+
+  '@prisma/driver-adapter-utils@7.7.0':
+    dependencies:
+      '@prisma/debug': 7.7.0
 
   '@prisma/engines-version@7.6.0-1.75cbdc1eb7150937890ad5465d861175c6624711': {}
 
@@ -12717,6 +12780,8 @@ snapshots:
 
   '@types/file-saver@2.0.7': {}
 
+  '@types/geojson@7946.0.16': {}
+
   '@types/graceful-fs@4.1.9':
     dependencies:
       '@types/node': 22.19.15
@@ -12767,6 +12832,10 @@ snapshots:
   '@types/node@22.19.15':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/node@24.12.2':
+    dependencies:
+      undici-types: 7.16.0
 
   '@types/pngjs@6.0.5':
     dependencies:
@@ -13296,6 +13365,10 @@ snapshots:
       stream-exhaust: 1.0.2
 
   async-function@1.0.0: {}
+
+  async-mutex@0.5.0:
+    dependencies:
+      tslib: 2.8.1
 
   async-settle@2.0.0:
     dependencies:
@@ -14404,8 +14477,8 @@ snapshots:
       '@next/eslint-plugin-next': 16.1.2
       eslint: 9.39.4(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.4(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.39.4(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@9.39.4(jiti@2.6.1))
@@ -14427,7 +14500,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@2.6.1)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3(supports-color@8.1.1)
@@ -14438,21 +14511,21 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       eslint: 9.39.4(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -14463,7 +14536,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.4(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -16437,10 +16510,10 @@ snapshots:
 
   kleur@4.1.5: {}
 
-  langchain@0.1.37(axios@1.13.6)(ignore@5.3.2)(lodash@4.17.23)(mysql2@3.15.3)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))(playwright@1.58.2)(ws@8.19.0):
+  langchain@0.1.37(@planetscale/database@1.20.1)(axios@1.13.6)(ignore@5.3.2)(lodash@4.17.23)(mysql2@3.15.3)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))(playwright@1.58.2)(ws@8.19.0):
     dependencies:
       '@anthropic-ai/sdk': 0.9.1
-      '@langchain/community': 0.0.57(lodash@4.17.23)(mysql2@3.15.3)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
+      '@langchain/community': 0.0.57(@planetscale/database@1.20.1)(lodash@4.17.23)(mysql2@3.15.3)(openai@4.104.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
       '@langchain/core': 0.1.63(openai@4.104.0(ws@8.19.0)(zod@4.3.6))
       '@langchain/openai': 0.0.28(ws@8.19.0)
       '@langchain/textsplitters': 0.0.3(openai@4.104.0(ws@8.19.0)(zod@4.3.6))
@@ -16893,6 +16966,22 @@ snapshots:
   map-cache@0.2.2: {}
 
   map-stream@0.1.0: {}
+
+  mariadb@3.4.5:
+    dependencies:
+      '@types/geojson': 7946.0.16
+      '@types/node': 24.12.2
+      denque: 2.1.0
+      iconv-lite: 0.6.3
+      lru-cache: 10.4.3
+
+  mariadb@3.5.2:
+    dependencies:
+      '@types/geojson': 7946.0.16
+      '@types/node': 22.19.15
+      denque: 2.1.0
+      iconv-lite: 0.7.2
+      lru-cache: 10.4.3
 
   markdown-table@3.0.4: {}
 
@@ -19501,6 +19590,8 @@ snapshots:
   undici-types@5.26.5: {}
 
   undici-types@6.21.0: {}
+
+  undici-types@7.16.0: {}
 
   undici@7.22.0: {}
 

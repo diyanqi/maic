@@ -814,8 +814,8 @@ export const useSettingsStore = create<SettingsState>()(
             return {
               ttsProvidersConfig: rest as typeof state.ttsProvidersConfig,
               ...(state.ttsProviderId === id && {
-                ttsProviderId: 'browser-native-tts' as TTSProviderId,
-                ttsVoice: 'default',
+                ttsProviderId: 'edge-tts' as TTSProviderId,
+                ttsVoice: 'zh-CN-XiaoxiaoNeural',
               }),
             };
           }),
@@ -1092,7 +1092,7 @@ export const useSettingsStore = create<SettingsState>()(
                 state.ttsProviderId,
                 newTTSConfig,
                 ttsFallback,
-                'browser-native-tts' as TTSProviderId,
+                'edge-tts' as TTSProviderId,
               );
               const validASRProvider = validateProvider(
                 state.asrProviderId,
