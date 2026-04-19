@@ -67,7 +67,9 @@ function createMariaDbAdapter(databaseUrl: string | undefined): PrismaMariaDb {
         }),
       );
     } catch {
-      // Fall through to placeholder values for build-time module evaluation.
+      // Some DATABASE_URL values include characters that URL() cannot parse.
+      // Let mariadb driver parse the DSN string directly instead of falling back to localhost.
+      return new PrismaMariaDb(mariadb.createPool(databaseUrl));
     }
   }
 

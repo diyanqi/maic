@@ -23,7 +23,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   const resolvedSearchParams = (await searchParams) ?? {};
   const callbackUrl = normalizeCallbackUrl(resolvedSearchParams.callbackUrl);
-  const isLoggedOut = resolvedSearchParams.loggedOut === '1';
   const providers = getOAuthProviderMetadata();
   const defaultProvider = providers[0];
 
@@ -47,7 +46,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               providerId={defaultProvider.id}
               providerName={defaultProvider.name}
               callbackUrl={callbackUrl}
-              auto={!isLoggedOut}
             />
           )}
         </div>

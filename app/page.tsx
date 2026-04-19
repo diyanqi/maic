@@ -317,11 +317,8 @@ function HomePage() {
   };
 
   const handleLogout = async () => {
-    const callbackUrl = encodeURIComponent(
-      `${window.location.pathname}${window.location.search || ''}` || '/',
-    );
     await signOut({
-      redirectTo: `/login?loggedOut=1&callbackUrl=${callbackUrl}`,
+      redirectTo: '/',
     });
   };
 
@@ -346,6 +343,8 @@ function HomePage() {
     }
   };
 
+  const isAuthenticated = !!authUser;
+
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-4 pt-16 md:p-8 md:pt-16 overflow-x-hidden">
       <input
@@ -368,6 +367,13 @@ function HomePage() {
         <div className="relative">
           <button
             onClick={() => {
+              if (!isAuthenticated) {
+                setUserMenuOpen(false);
+                setThemeOpen(false);
+                router.push('/login');
+                return;
+              }
+
               setUserMenuOpen((prev) => !prev);
               setThemeOpen(false);
             }}
@@ -383,17 +389,17 @@ function HomePage() {
               <UserCircle2 className="w-4 h-4" />
             )}
             <span className="text-xs font-medium max-w-[120px] truncate">
-              {authUser?.name || authUser?.email || t('common.user')}
+              {authUser?.name || authUser?.email || t('common.login')}
             </span>
-            <ChevronDown className="w-3.5 h-3.5" />
+            {isAuthenticated && <ChevronDown className="w-3.5 h-3.5" />}
           </button>
 
-          {userMenuOpen && (
+          {userMenuOpen && isAuthenticated && (
             <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[220px]">
               <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.currentUser')}</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                  {authUser?.name || t('common.user')}
+                  {authUser?.name || authUser?.email || t('common.user')}
                 </p>
                 {authUser?.email && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{authUser.email}</p>
